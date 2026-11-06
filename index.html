@@ -1,1422 +1,2098 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Nex Kernel — LaswI 团队自研的操作系统内核，自主设计启动、调度与系统服务等关键环节，作为 VayloOS 的底层基石。" />
-  <title>Nex Kernel · LaswI</title>
-  <style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nex Kernel · LaswI Studio</title>
+<meta name="description" content="Nex Kernel — 純自研通用操作系統內核，不基於 Linux，從零實現內存管理、進程調度、中斷處理與驅動框架。">
+<!-- 站點圖標：根目錄純文件名引用 -->
+<link rel="icon" href="logo.png">
 
+<!-- Google Fonts：Space Grotesk（標題）/ Noto Sans TC（正文）/ JetBrains Mono（代碼） -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<!-- Material Symbols 圖標 -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
 
+<style>
 /* ============================================================
-   LaswI Official Website — Aqua "Candy Jelly" Theme (v2)
-   仅此一份全局样式，6 页共用。纯 CSS 拟物，无图片贴图。
-   唯一主光源：左上。高饱和 Aqua 蓝 / 青 / 白。
-   类契约与响应式断点保持不变，HTML 零改动。
+   0. 設計令牌（Design Tokens）
+   —— 色板 / 圓角 / 陰影 / 動效曲線全部以自訂屬性管理
    ============================================================ */
+:root{
+  /* 色板：原始工程氣質（石墨黑 + 亮橙 + 鋼藍 + 琥珀） */
+  --graphite:#121417;
+  --graphite-2:#0C0E11;
+  --slate:#1C2230;          /* 深灰藍 */
+  --slate-2:#232A3A;
+  --slate-3:#2C3547;
+  --orange:#FF6D00;         /* 主輔色：內核 / 核心 / 行動 */
+  --steel:#82B1FF;          /* 第三色：終端 / 代碼 / 文檔 */
+  --amber:#FFC400;          /* 點綴色：警告 / 許可證 */
+  --surface:#F5F6F8;        /* 淺色板塊 */
+  --surface-2:#E9ECF2;
 
-/* ---------- 基础 ---------- */
-:root {
-  --aqua-ink: #07398f;
-  --aqua-ink-deep: #03285f;
-  --aqua-deep: #0a4bb0;
-  --aqua-mid: #1683e8;
-  --aqua-bright: #3fb6ff;
-  --aqua-cyan: #9be8ff;
-  --aqua-white: #ffffff;
-  --glass-high: rgba(255, 255, 255, 0.92);
-  --glass-mid: rgba(255, 255, 255, 0.55);
-  --navy-glass-a: rgba(255, 255, 255, 0.12);
-}
+  /* 文字 */
+  --on-dark:#E6ECF5;
+  --on-dark-mute:rgba(230,236,245,.62);
+  --on-dark-faint:rgba(230,236,245,.38);
+  --on-light:#121417;
+  --on-light-mute:rgba(18,20,23,.64);
+  --on-light-faint:rgba(18,20,23,.40);
 
-* { box-sizing: border-box; }
+  /* 圓角 */
+  --r-xl:64px;
+  --r-lg:48px;
+  --r-md:32px;
+  --r-sm:24px;
+  --r-xs:18px;
+  --r-pill:999px;
 
-html { -webkit-text-size-adjust: 100%; }
+  /* 陰影層級 */
+  --sh-1:0 2px 8px rgba(0,0,0,.24);
+  --sh-2:0 12px 32px rgba(0,0,0,.34);
+  --sh-3:0 28px 64px rgba(0,0,0,.44);
+  --sh-glow:0 0 0 1px rgba(255,109,0,.34), 0 18px 60px rgba(255,109,0,.20);
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
-    "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
-  color: #10355f;
-  background-color: #bfe2f9;
-  background-image:
-    radial-gradient(120% 70% at 12% -12%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.35) 42%, rgba(255, 255, 255, 0) 68%),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.65) 0px, rgba(255, 255, 255, 0.65) 1px, rgba(255, 255, 255, 0) 1px, rgba(255, 255, 255, 0) 4px),
-    repeating-linear-gradient(90deg, rgba(70, 140, 225, 0.05) 0px, rgba(70, 140, 225, 0.05) 1px, rgba(70, 140, 225, 0) 1px, rgba(70, 140, 225, 0) 12px),
-    linear-gradient(180deg, #cdeaff 0%, #d6f0fd 24%, #bcddf6 62%, #a8c9ea 100%);
-  background-attachment: fixed;
-  line-height: 1.62;
-  -webkit-font-smoothing: antialiased;
-}
+  /* 動效曲線（Material 標準緩動） */
+  --ease:cubic-bezier(.2,0,0,1);
+  --dur:280ms;
 
-img { max-width: 100%; }
-a { color: inherit; text-decoration: none; }
+  /* 排版 */
+  --font-display:'Space Grotesk','Noto Sans TC',system-ui,sans-serif;
+  --font-body:'Noto Sans TC','Noto Sans SC',system-ui,-apple-system,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
 
-/* 湿润半透明滚动条 */
-::-webkit-scrollbar { width: 12px; height: 12px; }
-::-webkit-scrollbar-track {
-  background: linear-gradient(180deg, rgba(160, 205, 245, 0.5), rgba(230, 245, 255, 0.5));
-  box-shadow: inset 0 0 0 1px rgba(8, 60, 150, 0.12);
-}
-::-webkit-scrollbar-thumb {
-  border: 2px solid rgba(255, 255, 255, 0.7);
-  border-radius: 999px;
-  background:
-    radial-gradient(120% 160% at 24% 8%, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.45) 32%, rgba(255, 255, 255, 0) 60%),
-    linear-gradient(180deg, #65c8ff 0%, #1b8cf0 55%, #0a5ed4 100%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6), 0 1px 4px rgba(10, 60, 150, 0.35);
-}
-
-::selection { background: rgba(70, 180, 255, 0.45); color: #03285f; }
-
-/* ---------- 布局容器 ---------- */
-.container { width: 1120px; max-width: calc(100% - 64px); margin: 0 auto; }
-
-/* ============================================================
-   导航：拉丝金属 + 银色玻璃工具栏 + 顶/底发丝高光线
-   ============================================================ */
-.nav {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background-color: rgba(242, 249, 255, 0.86);
-  -webkit-backdrop-filter: blur(16px) saturate(1.35);
-  backdrop-filter: blur(16px) saturate(1.35);
-  background-image:
-    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.10) 0px, rgba(255, 255, 255, 0.10) 1px, rgba(255, 255, 255, 0) 1px, rgba(255, 255, 255, 0) 3px),
-    repeating-linear-gradient(180deg, rgba(40, 120, 220, 0.055) 0px, rgba(40, 120, 220, 0.055) 1px, rgba(40, 120, 220, 0) 1px, rgba(40, 120, 220, 0) 5px),
-    linear-gradient(180deg, #f8fdff 0%, #e8f4fe 42%, #d7e9fa 78%, #c7ddf4 100%);
-  border-bottom: 1px solid rgba(9, 55, 140, 0.30);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 1),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.75),
-    0 1px 0 rgba(255, 255, 255, 0.8),
-    0 14px 26px -18px rgba(4, 42, 120, 0.75);
-}
-
-.nav-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 22px;
-  padding: 11px 0;
-}
-
-/* 品牌 logo：玻璃底座 + 柔和镜面倒影 */
-.brand { display: inline-flex; align-items: center; gap: 10px; }
-
-.brand .brand-logo {
-  display: inline-block;
-  padding: 4px;
-  border-radius: 13px;
-  background:
-    radial-gradient(120% 140% at 30% 12%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.2) 34%, rgba(255, 255, 255, 0) 58%),
-    linear-gradient(180deg, rgba(120, 190, 255, 0.35) 0%, rgba(60, 130, 235, 0.10) 60%, rgba(20, 80, 200, 0.28) 100%);
-  border: 1px solid rgba(10, 55, 150, 0.42);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.95),
-    inset 0 1px 2px rgba(255, 255, 255, 0.9),
-    0 2px 3px rgba(6, 40, 130, 0.35),
-    0 6px 12px -6px rgba(6, 40, 130, 0.55);
-  -webkit-box-reflect: below 2px -webkit-gradient(linear, left top, left bottom, from(transparent), color-stop(0.62, transparent), to(rgba(255, 255, 255, 0.32)));
-  transform: translateZ(0);
-}
-.brand .brand-logo img { display: block; width: 34px; height: 34px; border-radius: 9px; }
-
-.nav-links { display: flex; align-items: center; gap: 4px; list-style: none; margin: 0; padding: 0; }
-
-.nav-links a {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 15px;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  font-size: 14px;
-  font-weight: 700;
-  color: #0e3f88;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.75);
-  transition: color 0.16s ease, background-color 0.16s ease, box-shadow 0.2s ease, transform 0.2s ease;
-}
-
-.nav-links a:hover {
-  background-color: rgba(255, 255, 255, 0.55);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.9), 0 2px 6px -3px rgba(10, 60, 160, 0.35);
-  color: #06306f;
-  transform: translateY(-1px);
-}
-
-.nav-links a.active {
-  color: #ffffff;
-  border-color: rgba(6, 40, 130, 0.55);
-  background:
-    radial-gradient(130% 200% at 30% -30%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.28) 38%, rgba(255, 255, 255, 0) 60%),
-    linear-gradient(180deg, #5ec6ff 0%, #1f90f2 45%, #0b62d8 100%);
-  text-shadow: 0 -1px 1px rgba(4, 30, 110, 0.5);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.55),
-    inset 0 2px 3px rgba(255, 255, 255, 0.5),
-    inset 0 -5px 10px -6px rgba(4, 30, 110, 0.75),
-    0 2px 2px rgba(4, 30, 110, 0.30),
-    0 8px 16px -10px rgba(8, 80, 210, 0.75);
-}
-
-.nav-links a.active:hover { background-color: transparent; }
-
-/* ============================================================
-   果冻糖果按钮族
-   ============================================================ */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  cursor: pointer;
-  border: 1.5px solid rgba(5, 40, 140, 0.85);
-  border-radius: 999px;
-  padding: 11px 26px;
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  color: #ffffff;
-  text-shadow: 0 -1px 2px rgba(3, 30, 110, 0.6);
-  background:
-    radial-gradient(120% 210% at 50% -28%, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.60) 26%, rgba(255, 255, 255, 0) 55%),
-    radial-gradient(38% 56% at 24% 12%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.45) 40%, rgba(255, 255, 255, 0) 72%),
-    radial-gradient(65% 130% at 80% 115%, rgba(0, 60, 210, 0.65) 0%, rgba(0, 60, 210, 0) 58%),
-    linear-gradient(180deg, #aee6ff 0%, #49bfff 20%, #1489f2 46%, #0a63dd 74%, #0743ad 100%);
-  box-shadow:
-    inset 0 0 0 1.5px rgba(255, 255, 255, 0.72),
-    inset 0 3px 6px -2px rgba(255, 255, 255, 0.85),
-    inset 0 -10px 16px -10px rgba(4, 30, 130, 0.65),
-    0 2px 1px rgba(2, 28, 120, 0.55),
-    0 5px 14px -5px rgba(10, 80, 220, 0.65),
-    0 0 18px -4px rgba(140, 225, 255, 0.85);
-  transition: transform 0.16s cubic-bezier(0.2, 0.9, 0.3, 1.4), box-shadow 0.18s ease, filter 0.18s ease;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-.btn:hover {
-  transform: translateY(-2px) scale(1.035);
-  filter: saturate(1.25) brightness(1.08);
-  box-shadow:
-    inset 0 0 0 1.5px rgba(255, 255, 255, 0.95),
-    inset 0 5px 9px -3px rgba(255, 255, 255, 0.95),
-    inset 0 -10px 16px -9px rgba(4, 30, 130, 0.5),
-    0 4px 2px rgba(2, 28, 120, 0.5),
-    0 12px 22px -8px rgba(10, 90, 230, 0.85),
-    0 0 26px -2px rgba(150, 230, 255, 0.95);
-}
-
-.btn:active {
-  transform: translateY(1px) scale(0.985);
-  filter: none;
-  background:
-    linear-gradient(180deg, #7cd4ff 0%, #2596f0 38%, #0f6cdd 68%, #0a51bf 100%);
-  box-shadow:
-    inset 0 0 0 1.5px rgba(255, 255, 255, 0.4),
-    inset 0 6px 12px -2px rgba(3, 25, 110, 0.85),
-    inset 0 3px 6px rgba(3, 25, 110, 0.5),
-    inset 0 -2px 4px -2px rgba(255, 255, 255, 0.35),
-    0 1px 1px rgba(2, 28, 120, 0.35),
-    0 2px 6px -2px rgba(10, 80, 220, 0.6);
-}
-
-/* 原版主导按钮同样糖果化，保留蓝系（.btn 已是蓝糖果，此处仅兜底） */
-.btn-primary,
-.btn-blue {
-  border-color: rgba(5, 40, 140, 0.9);
-}
-
-/* 果冻白/亮青按钮 */
-.btn-ghost,
-.btn-outline {
-  color: #0a4bb0;
-  background:
-    radial-gradient(120% 190% at 50% -26%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.72) 30%, rgba(255, 255, 255, 0) 60%),
-    radial-gradient(34% 52% at 24% 12%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.6) 38%, rgba(255, 255, 255, 0) 70%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(240, 250, 255, 0.88) 40%, rgba(214, 238, 255, 0.92) 100%);
-  border-color: rgba(9, 60, 170, 0.55);
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.95);
-  box-shadow:
-    inset 0 0 0 1.5px rgba(255, 255, 255, 0.95),
-    inset 0 3px 6px -2px rgba(255, 255, 255, 1),
-    0 2px 1px rgba(5, 45, 150, 0.35),
-    0 6px 14px -6px rgba(20, 100, 235, 0.4),
-    0 0 16px -4px rgba(190, 235, 255, 0.9);
-}
-
-.btn-ghost:hover,
-.btn-outline:hover {
-  color: #083a99;
-  transform: translateY(-2px) scale(1.025);
-  box-shadow:
-    inset 0 0 0 1.5px rgba(255, 255, 255, 1),
-    inset 0 5px 10px -3px rgba(255, 255, 255, 1),
-    0 4px 3px rgba(5, 45, 150, 0.32),
-    0 12px 22px -8px rgba(20, 100, 235, 0.5),
-    0 0 24px -2px rgba(200, 240, 255, 1);
-}
-
-.btn-ghost:active,
-.btn-outline:active {
-  transform: translateY(1px) scale(0.98);
-  background: linear-gradient(180deg, #e2f3ff 0%, #c3e6ff 48%, #a8d8fb 100%);
-  box-shadow:
-    inset 0 4px 10px -2px rgba(10, 60, 170, 0.35),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.6),
-    0 1px 1px rgba(5, 45, 150, 0.3);
-}
-
-/* 导航内 CTA 隔离：拉丝工具栏上的糖果按钮需要高优先级规则，防 .nav-links a:hover 覆盖 */
-.nav-links a.btn,
-.nav-links a.btn-mail,
-.nav-links a.nav-cta {
-  padding: 8px 18px;
-  font-size: 14px;
-  color: #ffffff;
-  text-shadow: 0 -1px 2px rgba(3, 30, 110, 0.6);
-  background:
-    radial-gradient(120% 210% at 50% -28%, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.6) 26%, rgba(255, 255, 255, 0) 55%),
-    radial-gradient(38% 56% at 24% 12%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.45) 40%, rgba(255, 255, 255, 0) 72%),
-    linear-gradient(180deg, #aee6ff 0%, #49bfff 20%, #1489f2 46%, #0a63dd 74%, #0743ad 100%);
-  border-color: rgba(5, 40, 140, 0.85);
-}
-
-.nav-links a.btn:hover,
-.nav-links a.btn-mail:hover,
-.nav-links a.nav-cta:hover {
-  color: #ffffff;
-  transform: translateY(-2px) scale(1.03);
-  filter: saturate(1.25) brightness(1.08);
-  background:
-    radial-gradient(120% 210% at 50% -30%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.7) 28%, rgba(255, 255, 255, 0) 58%),
-    radial-gradient(40% 58% at 24% 10%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.55) 40%, rgba(255, 255, 255, 0) 74%),
-    linear-gradient(180deg, #b6ebff 0%, #55c6ff 20%, #1d93f5 46%, #0c68e2 74%, #0a4dbb 100%);
-  box-shadow:
-    inset 0 0 0 1.5px rgba(255, 255, 255, 0.95),
-    inset 0 4px 8px -2px rgba(255, 255, 255, 0.9),
-    inset 0 -10px 16px -9px rgba(4, 30, 130, 0.5),
-    0 4px 3px rgba(2, 28, 120, 0.5),
-    0 12px 22px -8px rgba(10, 90, 230, 0.85),
-    0 0 22px -2px rgba(150, 230, 255, 0.9);
-}
-
-.nav-links a.btn:active,
-.nav-links a.btn-mail:active,
-.nav-links a.nav-cta:active {
-  transform: translateY(1px) scale(0.98);
-  filter: none;
-  background: linear-gradient(180deg, #7cd4ff 0%, #2596f0 38%, #0f6cdd 68%, #0a51bf 100%);
-  box-shadow:
-    inset 0 6px 12px -2px rgba(3, 25, 110, 0.8),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.4),
-    0 1px 1px rgba(2, 28, 120, 0.4);
-}
-
-/* 文案型可点击链接（.card-link）做成“果冻字”，hover 似指尖按下 */
-.card-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-weight: 800;
-  color: #0a63dd;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
-  transition: color 0.16s ease, text-shadow 0.16s ease, transform 0.16s ease;
-}
-
-.card-link:hover {
-  color: #073fa3;
-  text-shadow: 0 0 9px rgba(110, 215, 255, 0.95), 0 1px 0 rgba(255, 255, 255, 0.95);
-  transform: translateX(2px);
+  --maxw:1240px;
+  --pad-x:clamp(20px,5vw,72px);
 }
 
 /* ============================================================
-   页头 / Hero
+   1. 基礎重置
    ============================================================ */
-.page-hero {
-  position: relative;
-  padding: 46px 0 34px;
-  text-align: left;
+*,*::before,*::after{box-sizing:border-box;}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:var(--graphite);
+  color:var(--on-dark);
+  font-family:var(--font-body);
+  font-size:16px;
+  line-height:1.7;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+img{max-width:100%;display:block;}
+a{color:inherit;text-decoration:none;}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;}
+h1,h2,h3,h4,p,ul,ol{margin:0;}
+ul,ol{padding:0;list-style:none;}
+::selection{background:var(--orange);color:#121417;}
+mark{background:none;}
+
+/* ============================================================
+   2. 通用組件：Mono / 巨型鏤空字 / 方括號 / 膠囊 / 按鈕
+   ============================================================ */
+.mono{font-family:var(--font-mono);font-size:12px;letter-spacing:.10em;}
+
+/* 巨型鏤空字：漸變從字中透出 */
+.giant{
+  font-family:var(--font-display);
+  font-weight:700;
+  line-height:.84;
+  letter-spacing:-.045em;
+  text-transform:uppercase;
+  background:linear-gradient(118deg,var(--orange) 0%,#FF9A3C 34%,var(--steel) 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  -webkit-text-fill-color:transparent;
+  display:block;
+}
+.giant--hero{font-size:clamp(56px,9.2vw,148px);}
+.giant--sec{font-size:clamp(34px,5.4vw,84px);}
+
+/* 板塊標題：[ TITLE ] / 中文 */
+.sec-head{
+  display:flex;flex-wrap:wrap;align-items:flex-end;
+  gap:clamp(8px,1.4vw,18px);
+  margin-bottom:clamp(26px,4vw,54px);
+}
+.sec-head__bracket{
+  font-family:var(--font-display);font-weight:700;
+  font-size:clamp(30px,4.6vw,72px);line-height:.9;
+  color:var(--steel);opacity:.92;
+  transition:transform var(--dur) var(--ease),color var(--dur) var(--ease);
+}
+.sec-head:hover .sec-head__bracket{transform:translateY(-2px);color:var(--orange);}
+.sec-head__sub{
+  font-size:clamp(15px,1.6vw,20px);font-weight:500;
+  padding-bottom:clamp(6px,1vw,14px);
+  color:var(--on-dark-mute);letter-spacing:.02em;
+}
+.sec--light .sec-head__sub{color:var(--on-light-mute);}
+
+/* 膠囊 */
+.pill{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 16px;border-radius:var(--r-pill);
+  font-family:var(--font-mono);font-size:11px;
+  letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;
+}
+.pill--steel{color:var(--steel);box-shadow:inset 0 0 0 1px rgba(130,177,255,.5);}
+.pill--orange{color:var(--orange);box-shadow:inset 0 0 0 1px rgba(255,109,0,.5);}
+.pill--amber{color:var(--amber);box-shadow:inset 0 0 0 1px rgba(255,196,0,.5);}
+.pill--mute{color:var(--on-dark-mute);box-shadow:inset 0 0 0 1px rgba(230,236,245,.24);}
+
+/* 按鈕 */
+.btn{
+  position:relative;overflow:hidden;
+  display:inline-flex;align-items:center;gap:10px;
+  padding:14px 28px;border-radius:var(--r-pill);
+  font-size:14px;font-weight:500;letter-spacing:.02em;white-space:nowrap;
+  transition:transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease),
+             background-color var(--dur) var(--ease),color var(--dur) var(--ease);
+}
+.btn .material-symbols-rounded{font-size:18px;transition:transform var(--dur) var(--ease);}
+.btn--orange{background:var(--orange);color:#14100B;box-shadow:0 6px 20px rgba(255,109,0,.26);}
+.btn--orange:hover{transform:translateY(-3px);box-shadow:0 16px 38px rgba(255,109,0,.42);}
+.btn--orange:hover .material-symbols-rounded{transform:translateX(5px);}
+.btn--steel{color:var(--steel);box-shadow:inset 0 0 0 1.5px rgba(130,177,255,.6);}
+.btn--steel:hover{transform:translateY(-3px);background:rgba(130,177,255,.12);box-shadow:inset 0 0 0 1.5px var(--steel),0 14px 30px rgba(130,177,255,.18);}
+.btn--sm{padding:9px 18px;font-size:12.5px;}
+.btn--lg{padding:18px 40px;font-size:15px;}
+
+/* 漣漪 */
+.ripple{position:relative;overflow:hidden;}
+.ripple__dot{
+  position:absolute;border-radius:50%;background:currentColor;opacity:.32;
+  transform:scale(0);pointer-events:none;animation:ripple .62s var(--ease) forwards;
+}
+@keyframes ripple{to{transform:scale(2.8);opacity:0;}}
+
+/* 滾動進場 */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity 720ms var(--ease),transform 720ms var(--ease);}
+.reveal.in{opacity:1;transform:none;}
+
+/* ============================================================
+   3. 導航
+   ============================================================ */
+.nav{
+  position:fixed;inset:0 0 auto 0;z-index:100;
+  display:flex;justify-content:center;
+  padding:22px var(--pad-x);
+  transition:padding 420ms var(--ease);
+}
+.nav__inner{
+  width:100%;max-width:var(--maxw);
+  display:flex;align-items:center;gap:clamp(10px,1.6vw,22px);
+  padding:12px clamp(14px,2vw,24px);
+  border-radius:var(--r-pill);
+  background:transparent;
+  transition:max-width 420ms var(--ease),background-color 420ms var(--ease),
+             box-shadow 420ms var(--ease),padding 420ms var(--ease);
+}
+.nav.is-compact{padding-top:12px;padding-bottom:12px;}
+.nav.is-compact .nav__inner{
+  max-width:1080px;
+  background:rgba(18,20,23,.94);
+  box-shadow:var(--sh-2),inset 0 0 0 1px rgba(230,236,245,.08);
+  padding:8px clamp(12px,1.6vw,20px);
+}
+.nav.is-compact .nav__inner:hover{background:rgba(28,34,48,.97);}
+
+.nav__brand{display:flex;align-items:center;gap:10px;flex:0 0 auto;}
+.nav__logo{width:34px;height:34px;object-fit:contain;transition:transform var(--dur) var(--ease);}
+.nav__brand:hover .nav__logo{transform:rotate(-8deg) scale(1.06);}
+.nav__brandtext{
+  font-family:var(--font-display);font-weight:700;font-size:19px;letter-spacing:-.02em;
+  background:linear-gradient(118deg,var(--orange),var(--steel));
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
 }
 
-.crumbs {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  margin: 0 0 16px;
-  padding: 5px 12px;
-  border-radius: 999px;
-  font-size: 13px;
-  color: #0a4bb0;
-  background: rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.75);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6), 0 2px 6px -3px rgba(10, 60, 170, 0.35);
+.nav__links{display:flex;align-items:center;gap:clamp(6px,1vw,16px);flex:1 1 auto;justify-content:center;}
+.nav__link{
+  position:relative;font-size:13px;color:var(--on-dark-mute);
+  padding:6px 2px;white-space:nowrap;transition:color var(--dur) var(--ease);
 }
-.crumbs a { color: #0a63dd; font-weight: 700; }
-.crumbs a:hover { color: #073fa3; text-shadow: 0 0 8px rgba(110, 215, 255, 0.8); }
-
-/* Aqua 玻璃字标题：深蓝凸字 + 上缘内收高光，模仿透明玻璃内部折射 */
-h1, h2, h3, .section-head h2, .hero h1 {
-  letter-spacing: 0.01em;
-  color: #063a93;
+.nav__link::after{
+  content:'';position:absolute;left:0;bottom:0;height:2px;width:0;
+  border-radius:2px;background:var(--orange);transition:width var(--dur) var(--ease);
 }
+.nav__link:hover{color:var(--on-dark);}
+.nav__link:hover::after{width:100%;}
 
-h1 {
-  font-size: 52px;
-  line-height: 1.16;
-  font-weight: 900;
-  color: #04327f;
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.85),
-    0 2px 3px rgba(4, 40, 120, 0.25),
-    0 -1px 1px rgba(255, 255, 255, 0.35);
+.nav__actions{display:flex;align-items:center;gap:10px;flex:0 0 auto;}
+
+/* 語言分段按鈕 */
+.seg{
+  display:inline-flex;padding:3px;border-radius:var(--r-pill);
+  box-shadow:inset 0 0 0 1px rgba(230,236,245,.18);
+  background:rgba(230,236,245,.04);
 }
-
-h2 {
-  font-size: 34px;
-  line-height: 1.25;
-  font-weight: 900;
-  color: #05327f;
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.8),
-    0 -1px 1px rgba(255, 255, 255, 0.3);
+.seg__btn{
+  padding:6px 12px;border-radius:var(--r-pill);
+  font-size:11.5px;letter-spacing:.02em;color:var(--on-dark-mute);
+  transition:background-color var(--dur) var(--ease),color var(--dur) var(--ease);
 }
+.seg__btn:hover{color:var(--on-dark);}
+.seg__btn.is-active{background:var(--steel);color:#0D1520;font-weight:500;}
 
-h3 {
-  font-size: 20px;
-  line-height: 1.35;
-  font-weight: 800;
-  color: #073a93;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.75);
+/* 版本角標 + 日誌浮層 */
+.nav__version{
+  position:relative;display:flex;align-items:center;
+  padding:6px 11px;border-radius:var(--r-pill);
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;
+  color:var(--steel);box-shadow:inset 0 0 0 1px rgba(130,177,255,.42);
+  transition:background-color var(--dur) var(--ease),transform var(--dur) var(--ease);
 }
-
-.hero {
-  padding: 76px 0 60px;
+.nav__version:hover{background:rgba(130,177,255,.14);transform:translateY(-1px);}
+.nav__pop{
+  position:absolute;top:calc(100% + 12px);right:0;width:300px;
+  padding:16px 18px;border-radius:var(--r-sm);
+  background:var(--slate);
+  box-shadow:var(--sh-3),inset 0 0 0 1px rgba(230,236,245,.08);
+  opacity:0;visibility:hidden;transform:translateY(-8px);
+  transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease),visibility var(--dur);
+  pointer-events:none;
 }
-
-.hero .hl {
-  display: inline-block;
-  background: linear-gradient(100deg, #062f8c 0%, #1474e8 50%, #0694e0 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: none;
+.nav__version:hover .nav__pop,
+.nav__version:focus-within .nav__pop{opacity:1;visibility:visible;transform:none;pointer-events:auto;}
+.nav__pop h4{
+  font-family:var(--font-mono);font-size:10.5px;letter-spacing:.16em;
+  color:var(--on-dark-faint);text-transform:uppercase;margin-bottom:10px;
 }
-
-.hero p.lead,
-.page-hero p.lead {
-  font-size: 19px;
-  color: #16477f;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+.nav__pop li{
+  font-family:var(--font-mono);font-size:11px;line-height:1.6;
+  color:var(--on-dark-mute);padding:6px 0;border-bottom:1px dashed rgba(230,236,245,.08);
 }
-
-.hero-grid {
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  align-items: center;
-  gap: 40px;
+.nav__pop li:last-child{border-bottom:0;}
+.nav__pop li b{color:var(--orange);font-weight:500;margin-right:8px;}
+/* ============================================================
+   4. Hero 首屏
+   ============================================================ */
+.hero{
+  position:relative;min-height:100vh;min-height:100dvh;overflow:hidden;
+  background:radial-gradient(120% 90% at 78% 26%,#1B2231 0%,#141821 42%,var(--graphite) 74%);
+  display:flex;align-items:center;
+  padding:clamp(120px,16vh,190px) var(--pad-x) clamp(60px,10vh,110px);
 }
-
-.hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin-top: 30px;
-  align-items: center;
+/* 幾何色塊拼貼層 */
+.hero__bg{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+.shape{position:absolute;display:block;opacity:0;animation:fadeUp 1.4s var(--ease) forwards;}
+.shape--oct{
+  width:min(46vw,560px);aspect-ratio:1;right:-6%;top:6%;
+  background:linear-gradient(150deg,rgba(255,109,0,.16),rgba(130,177,255,.10));
+  clip-path:polygon(29.3% 0,70.7% 0,100% 29.3%,100% 70.7%,70.7% 100%,29.3% 100%,0 70.7%,0 29.3%);
+  animation-delay:.15s;
 }
-
-/* 主视觉：Aqua logo 玻璃底座 + 倒影式高光 */
-.hero-art {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 340px;
+.shape--oct2{
+  width:min(24vw,300px);aspect-ratio:1;left:4%;bottom:8%;
+  background:rgba(130,177,255,.10);
+  clip-path:polygon(29.3% 0,70.7% 0,100% 29.3%,100% 70.7%,70.7% 100%,29.3% 100%,0 70.7%,0 29.3%);
+  animation-delay:.3s;
 }
-
-.hero-logo {
-  position: relative;
-  display: inline-block;
-  width: 250px;
-  height: 250px;
-  border-radius: 58px;
-  padding: 22px;
-  background:
-    radial-gradient(150% 220% at 24% 6%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.25) 34%, rgba(255, 255, 255, 0) 60%),
-    radial-gradient(70% 130% at 78% 112%, rgba(30, 110, 255, 0.65) 0%, rgba(30, 110, 255, 0) 56%),
-    linear-gradient(180deg, #c9f0ff 0%, #7fd6ff 42%, #2f9bf5 100%);
-  border: 1px solid rgba(7, 45, 150, 0.65);
-  box-shadow:
-    inset 0 0 0 2px rgba(255, 255, 255, 0.85),
-    inset 0 4px 12px -4px rgba(255, 255, 255, 1),
-    inset 0 -20px 34px -20px rgba(4, 40, 160, 0.7),
-    0 3px 2px rgba(4, 34, 130, 0.55),
-    0 16px 26px -10px rgba(4, 50, 160, 0.75),
-    0 0 40px -8px rgba(120, 220, 255, 0.9);
-  -webkit-box-reflect: below 16px -webkit-gradient(linear, left top, left bottom, from(transparent), color-stop(0.6, transparent), to(rgba(255, 255, 255, 0.28)));
+.shape--bar{height:14px;border-radius:var(--r-pill);animation-delay:.42s;}
+.shape--bar1{width:min(30vw,320px);left:8%;top:22%;background:rgba(255,109,0,.30);}
+.shape--bar2{width:min(18vw,190px);left:14%;top:calc(22% + 26px);background:rgba(255,196,0,.20);}
+.shape--bar3{width:min(22vw,240px);right:6%;bottom:16%;background:rgba(130,177,255,.24);}
+.shape--ring{
+  width:min(30vw,360px);aspect-ratio:1;border-radius:50%;left:34%;top:-14%;
+  box-shadow:inset 0 0 0 1px rgba(230,236,245,.10);animation-delay:.5s;
 }
+.shape--glow{
+  width:min(60vw,720px);aspect-ratio:1;border-radius:50%;right:2%;top:10%;
+  background:radial-gradient(circle,rgba(255,109,0,.20) 0%,rgba(255,109,0,0) 62%);
+  filter:blur(6px);animation-delay:.1s;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:none;}}
 
-.hero-logo img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  -webkit-box-reflect: below 6px -webkit-gradient(linear, left top, left bottom, from(transparent), color-stop(0.72, transparent), to(rgba(255, 255, 255, 0.22)));
-  filter: drop-shadow(0 4px 5px rgba(6, 40, 130, 0.35));
+.hero__inner{
+  position:relative;z-index:2;width:100%;max-width:var(--maxw);margin:0 auto;
+  display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);
+  align-items:center;gap:clamp(24px,4vw,64px);
+}
+.hero__brandrow{display:flex;align-items:center;gap:12px;margin-bottom:clamp(14px,2vw,24px);}
+.hero__logo{width:40px;height:40px;object-fit:contain;}
+.hero__brandmono{
+  font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:-.02em;
+  background:linear-gradient(118deg,var(--orange),var(--steel));
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+}
+.hero__title{margin:0 0 clamp(16px,2.4vw,26px);}
+.hero__title .giant{opacity:0;animation:heroIn 1s var(--ease) forwards;}
+.hero__title .giant:nth-child(2){animation-delay:.12s;}
+@keyframes heroIn{from{opacity:0;transform:translateY(28px);}to{opacity:1;transform:none;}}
+
+.hero__kicker{color:var(--steel);margin-bottom:10px;opacity:0;animation:heroIn 1s var(--ease) .26s forwards;}
+.hero__tagline{
+  font-size:clamp(15px,1.5vw,18px);color:var(--on-dark-mute);max-width:34ch;
+  margin-bottom:clamp(20px,3vw,32px);opacity:0;animation:heroIn 1s var(--ease) .34s forwards;
+}
+.hero__cta{display:flex;flex-wrap:wrap;gap:12px;opacity:0;animation:heroIn 1s var(--ease) .46s forwards;}
+
+/* 終端視窗 */
+.term{
+  position:relative;border-radius:var(--r-sm);background:var(--graphite-2);
+  box-shadow:inset 0 0 0 1px rgba(230,236,245,.10),var(--sh-2);overflow:hidden;
+}
+.term--hero{
+  max-width:420px;margin-bottom:clamp(20px,3vw,30px);
+  opacity:0;animation:heroIn 1s var(--ease) .40s forwards;
+}
+.term__bar{display:flex;align-items:center;gap:7px;padding:11px 16px;border-bottom:1px solid rgba(230,236,245,.07);}
+.term__dot{width:9px;height:9px;border-radius:50%;background:rgba(230,236,245,.22);}
+.term__dot:nth-child(1){background:rgba(255,109,0,.62);}
+.term__dot:nth-child(2){background:rgba(255,196,0,.52);}
+.term__dot:nth-child(3){background:rgba(130,177,255,.52);}
+.term__bar span{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.12em;color:var(--on-dark-faint);}
+.term__body{
+  padding:16px 18px 18px;font-family:var(--font-mono);font-size:13px;letter-spacing:.02em;
+  color:var(--on-dark-mute);min-height:56px;display:flex;align-items:center;gap:9px;
+}
+.term__prompt{color:var(--steel);}
+.term__cmd{color:var(--orange);}
+
+/* 閃爍終端游標（鋼藍細豎條） */
+.cursor{
+  display:inline-block;width:3px;height:1.05em;border-radius:2px;
+  background:var(--steel);animation:blink 1.05s steps(1,end) infinite;vertical-align:-2px;
+}
+@keyframes blink{0%,49%{opacity:1;}50%,100%{opacity:0;}}
+
+/* Hero 右側：八邊形內核核心 */
+.hero__art{position:relative;display:flex;align-items:center;justify-content:center;min-height:clamp(280px,42vw,520px);}
+.hero__glow{
+  position:absolute;width:78%;aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,109,0,.30) 0%,rgba(130,177,255,.10) 46%,rgba(18,20,23,0) 72%);
+  filter:blur(10px);
+}
+.core-svg{
+  position:relative;width:min(100%,520px);height:auto;
+  animation:coreIn 1.4s var(--ease) .1s both;will-change:transform;
+}
+@keyframes coreIn{from{opacity:0;transform:scale(1.08);}to{opacity:1;transform:scale(1);}}
+.core-svg .core-fill{animation:breathe 6s var(--ease) infinite;transform-origin:200px 200px;}
+@keyframes breathe{0%,100%{opacity:.9;}50%{opacity:.64;}}
+.pin{fill:var(--steel);opacity:.55;transform-box:fill-box;transform-origin:center;animation:pulse 3.2s var(--ease) infinite;}
+@keyframes pulse{0%,100%{opacity:.28;transform:scale(1);}50%{opacity:.95;transform:scale(1.55);}}
+.core-label{font-family:var(--font-display);font-weight:700;font-size:44px;letter-spacing:.06em;}
+.core-sub{font-family:var(--font-mono);font-size:11px;letter-spacing:.34em;fill:rgba(230,236,245,.5);}
+
+.hero__corner{
+  position:absolute;right:var(--pad-x);bottom:clamp(20px,4vh,42px);
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--on-dark-faint);
+}
+.hero__scroll{
+  position:absolute;left:var(--pad-x);bottom:clamp(20px,4vh,42px);
+  display:flex;align-items:center;gap:10px;
+  font-family:var(--font-mono);font-size:10.5px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--on-dark-faint);
+}
+.hero__scroll i{
+  display:block;width:1px;height:26px;
+  background:linear-gradient(var(--steel),transparent);animation:drop 2s var(--ease) infinite;
+}
+@keyframes drop{0%{transform:scaleY(.2);opacity:.2;}50%{transform:scaleY(1);opacity:1;}100%{transform:scaleY(.2);opacity:.2;}}
+
+/* ============================================================
+   5. 板塊通用
+   ============================================================ */
+.sec{position:relative;padding:clamp(64px,9vw,140px) var(--pad-x);overflow:hidden;}
+.sec__inner{max-width:var(--maxw);margin:0 auto;position:relative;}
+.sec--dark{background:var(--graphite);color:var(--on-dark);}
+.sec--dark.alt{background:linear-gradient(180deg,var(--graphite) 0%,#0E1116 100%);}
+.sec--light{background:var(--surface);color:var(--on-light);}
+
+/* ============================================================
+   6. 定位宣言（淺色）
+   ============================================================ */
+.what__grid{
+  display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);
+  gap:clamp(28px,5vw,80px);align-items:start;
+  background:var(--surface);border-radius:var(--r-xl);
+  padding:clamp(28px,4vw,64px);box-shadow:0 20px 60px rgba(18,20,23,.06);
+}
+.what__left .giant{font-size:clamp(44px,6.4vw,104px);}
+.what__left .tiny{
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--on-light-faint);margin-top:18px;
+}
+.what__lead{display:flex;flex-direction:column;gap:clamp(18px,2.6vw,34px);}
+.decl{position:relative;}
+.decl__line{
+  font-size:clamp(19px,2.5vw,32px);font-weight:700;line-height:1.45;letter-spacing:-.01em;
+  color:var(--on-light);transition:transform var(--dur) var(--ease);
+}
+.decl__line .hl{
+  display:inline-block;background:var(--orange);color:#121417;
+  padding:0 .34em;border-radius:10px;line-height:1.28;
+  transform-origin:left center;
+  transition:transform 360ms var(--ease),box-shadow 360ms var(--ease);
+}
+.decl:hover .decl__line{transform:translateX(8px);}
+.decl:hover .decl__line .hl{transform:scaleX(1.10);box-shadow:0 8px 22px rgba(255,109,0,.32);}
+.decl__note{
+  margin-top:10px;font-family:var(--font-mono);font-size:11.5px;letter-spacing:.10em;
+  color:var(--on-light-faint);transition:color var(--dur) var(--ease);
+}
+.decl:hover .decl__note{color:var(--on-light-mute);}
+
+/* ============================================================
+   7. 內核模塊（放射圖）
+   ============================================================ */
+.radial{position:relative;height:780px;margin-top:clamp(10px,2vw,26px);}
+.radial__links{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;}
+.link-base{stroke:rgba(230,236,245,.13);stroke-width:1;fill:none;}
+.link-flow{
+  stroke:var(--steel);stroke-width:1.6;fill:none;opacity:.5;stroke-linecap:round;
+  animation:flow 2.6s linear infinite;
+  transition:stroke var(--dur) var(--ease),opacity var(--dur) var(--ease),stroke-width var(--dur) var(--ease);
+}
+@keyframes flow{to{stroke-dashoffset:-36;}}
+.link-node{fill:var(--steel);opacity:.55;transition:opacity var(--dur) var(--ease),fill var(--dur) var(--ease);}
+.link-group.is-hot .link-flow{stroke:var(--orange);opacity:1;stroke-width:2.6;animation-duration:1.1s;}
+.link-group.is-hot .link-node{fill:var(--orange);opacity:1;}
+
+/* 中心核心 */
+.corenode{
+  position:absolute;left:50%;top:50%;width:clamp(150px,16vw,208px);aspect-ratio:1;
+  transform:translate(-50%,-50%);display:grid;place-items:center;z-index:3;
+}
+.corenode__ring{
+  position:absolute;inset:0;
+  clip-path:polygon(29.3% 0,70.7% 0,100% 29.3%,100% 70.7%,70.7% 100%,29.3% 100%,0 70.7%,0 29.3%);
+  background:linear-gradient(150deg,var(--orange),var(--steel));
+  transition:transform 520ms var(--ease);
+}
+.corenode__inner{
+  position:absolute;inset:7px;
+  clip-path:polygon(29.3% 0,70.7% 0,100% 29.3%,100% 70.7%,70.7% 100%,29.3% 100%,0 70.7%,0 29.3%);
+  background:radial-gradient(circle at 34% 28%,#232B3B 0%,#121417 72%);
+  display:grid;place-items:center;
+}
+.corenode__label{position:relative;text-align:center;line-height:1;}
+.corenode__label b{
+  display:block;font-family:var(--font-display);font-weight:700;
+  font-size:clamp(22px,2.4vw,30px);letter-spacing:-.02em;
+  background:linear-gradient(118deg,var(--orange),var(--steel));
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+}
+.corenode__label span{
+  display:block;margin-top:8px;font-family:var(--font-mono);
+  font-size:9.5px;letter-spacing:.26em;color:var(--on-dark-faint);text-transform:uppercase;
+}
+.radial.is-focused .corenode__ring{transform:scale(1.045);}
+.radial.is-hit .corenode__ring{animation:corePulse 900ms var(--ease);}
+@keyframes corePulse{0%{transform:scale(1);}38%{transform:scale(1.075);}100%{transform:scale(1.045);}}
+
+/* 模塊卡片 */
+.mod-card{
+  position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);
+  width:212px;padding:18px 18px 16px;border-radius:var(--r-md);
+  background:var(--slate);box-shadow:inset 0 0 0 1px rgba(230,236,245,.06),var(--sh-1);
+  text-align:left;cursor:default;z-index:2;will-change:transform;
+  transition:transform 320ms var(--ease),box-shadow 320ms var(--ease),
+             opacity 320ms var(--ease),background-color 320ms var(--ease),filter 320ms var(--ease);
+}
+.mod-card__icon{
+  width:38px;height:38px;border-radius:12px;display:grid;place-items:center;margin-bottom:12px;
+  background:rgba(130,177,255,.14);color:var(--steel);
+  transition:transform var(--dur) var(--ease),background-color var(--dur) var(--ease),color var(--dur) var(--ease);
+}
+.mod-card__icon .material-symbols-rounded{font-size:21px;}
+.mod-card__name{font-size:15.5px;font-weight:700;letter-spacing:.01em;margin-bottom:6px;color:var(--on-dark);}
+.mod-card__mono{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;color:var(--on-dark-faint);line-height:1.6;}
+.mod-card[data-tone="orange"]{background:#2A2018;}
+.mod-card[data-tone="orange"] .mod-card__icon{background:rgba(255,109,0,.18);color:var(--orange);}
+.mod-card[data-tone="steel"]{background:#1B2334;}
+.mod-card[data-tone="steel"] .mod-card__icon{background:rgba(130,177,255,.18);color:var(--steel);}
+.mod-card[data-tone="slate"] .mod-card__icon{background:rgba(230,236,245,.10);color:var(--on-dark);}
+
+.mod-card:hover,.mod-card.is-active{
+  transform:translate(-50%,-50%) scale(1.07);
+  box-shadow:inset 0 0 0 1px rgba(255,109,0,.34),0 22px 48px rgba(0,0,0,.5);
+  z-index:4;
+}
+.mod-card:hover .mod-card__icon,.mod-card.is-active .mod-card__icon{transform:translateY(-2px) rotate(-6deg);}
+.radial.is-focused .mod-card:not(.is-active){opacity:.42;filter:saturate(.6);}
+
+/* 模塊詳情卡 */
+.mod-detail{
+  margin-top:clamp(20px,3vw,34px);border-radius:var(--r-lg);
+  background:linear-gradient(120deg,var(--slate) 0%,#171C27 100%);
+  box-shadow:inset 0 0 0 1px rgba(230,236,245,.07);
+  padding:clamp(22px,3vw,40px);
+  display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);
+  gap:clamp(18px,3vw,44px);align-items:start;
+  transition:opacity 260ms var(--ease),transform 260ms var(--ease);
+}
+.mod-detail.is-swap{opacity:0;transform:translateY(10px);}
+.mod-detail__kicker{
+  font-family:var(--font-mono);font-size:10.5px;letter-spacing:.2em;
+  color:var(--steel);text-transform:uppercase;margin-bottom:10px;
+}
+.mod-detail__title{font-size:clamp(20px,2.2vw,28px);font-weight:700;margin-bottom:10px;}
+.mod-detail__desc{font-size:14.5px;color:var(--on-dark-mute);max-width:46ch;}
+.mod-detail__points{display:grid;gap:10px;}
+.mod-detail__points li{
+  display:flex;gap:12px;align-items:flex-start;font-size:13.5px;color:var(--on-dark-mute);
+  padding:11px 14px;border-radius:var(--r-xs);background:rgba(230,236,245,.04);
+  transition:background-color var(--dur) var(--ease),transform var(--dur) var(--ease);
+}
+.mod-detail__points li:hover{background:rgba(255,109,0,.10);transform:translateX(4px);}
+.mod-detail__points li::before{
+  content:'';width:6px;height:6px;border-radius:50%;background:var(--orange);flex:0 0 auto;margin-top:8px;
+}
+.mod-hint{
+  font-family:var(--font-mono);font-size:10.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--on-dark-faint);
 }
 
 /* ============================================================
-   分区与章节头
+   8. 核心特性（Live Tile）
    ============================================================ */
-.section { padding: 40px 0 52px; }
-
-.section-head {
-  text-align: center;
-  max-width: 720px;
-  margin: 0 auto 36px;
+.tiles{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  grid-auto-rows:172px;gap:clamp(12px,1.6vw,20px);
 }
-
-.section-head .kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  color: #0a55b8;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.75);
-  margin-bottom: 10px;
+.tile{position:relative;perspective:1200px;border-radius:var(--r-lg);cursor:pointer;}
+.tile__inner{
+  position:relative;width:100%;height:100%;transform-style:preserve-3d;
+  transition:transform 760ms var(--ease);will-change:transform;
 }
-
-.section-head .kicker::before,
-.section-head .kicker::after {
-  content: "";
-  display: block;
-  width: 22px;
-  height: 9px;
-  border-radius: 999px;
-  background: linear-gradient(180deg, #9be0ff, #c9ecff);
-  box-shadow: inset 0 0 0 1px rgba(8, 60, 160, 0.28), 0 1px 0 rgba(255, 255, 255, 0.8);
+.tile.is-flipped .tile__inner{transform:rotateY(180deg);}
+.tile__face{
+  position:absolute;inset:0;border-radius:var(--r-lg);padding:clamp(18px,2vw,28px);
+  display:flex;flex-direction:column;justify-content:space-between;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;
+  transition:box-shadow var(--dur) var(--ease),filter var(--dur) var(--ease);
 }
-
-.section-head p {
-  font-size: 16px;
-  color: #16477f;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+.tile__back{transform:rotateY(180deg);}
+.tile__icon{font-size:26px;opacity:.92;transition:transform var(--dur) var(--ease);}
+.tile:hover .tile__icon{transform:translate(4px,-4px) scale(1.08);}
+.tile__title{
+  font-family:var(--font-display);font-weight:700;
+  font-size:clamp(15px,1.5vw,21px);line-height:1.2;letter-spacing:-.01em;
 }
-
-/* 凹槽式分区下边缘 */
-.section + .section {
-  position: relative;
+.tile__body{font-size:13px;line-height:1.6;opacity:.92;}
+.tile__mono{font-family:var(--font-mono);font-size:10px;letter-spacing:.20em;text-transform:uppercase;opacity:.55;}
+.tile__cur{
+  position:absolute;right:16px;bottom:16px;width:2.5px;height:14px;border-radius:2px;
+  background:currentColor;opacity:.6;animation:blink 1.15s steps(1,end) infinite;
 }
-.section + .section::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 8%; right: 8%;
-  height: 2px;
-  background: linear-gradient(180deg, rgba(9, 55, 150, 0.35), rgba(9, 55, 150, 0));
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.75);
-  border-radius: 999px;
-  pointer-events: none;
+.tile:hover .tile__cur{animation-duration:.45s;}
+
+.tile[data-tone="graphite"] .tile__face{background:#161A20;color:var(--on-dark);box-shadow:inset 0 0 0 1px rgba(230,236,245,.07);}
+.tile[data-tone="orange"] .tile__face{background:var(--orange);color:#14100B;}
+.tile[data-tone="steel"] .tile__face{background:var(--steel);color:#0D1520;}
+.tile[data-tone="slate"] .tile__face{background:var(--slate);color:var(--on-dark);box-shadow:inset 0 0 0 1px rgba(230,236,245,.07);}
+.tile:hover .tile__face{box-shadow:0 24px 52px rgba(0,0,0,.46);filter:brightness(1.06);}
+
+.tile--big{grid-column:span 2;grid-row:span 2;}
+.tile--big .tile__title{font-size:clamp(20px,2.4vw,34px);}
+.tile--big .tile__icon{font-size:34px;}
+.tile--wide{grid-column:span 2;}
+.tile--big .tile__body{font-size:14px;max-width:30ch;}
+
+/* ============================================================
+   9. 架構與移植（淺色）
+   ============================================================ */
+.arch-grid{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:clamp(14px,2vw,24px);margin-bottom:clamp(40px,6vw,80px);
+}
+.arch-card{
+  background:#fff;border-radius:var(--r-lg);padding:clamp(22px,2.6vw,38px);
+  transition:transform 320ms var(--ease),box-shadow 320ms var(--ease);
+  box-shadow:0 10px 30px rgba(18,20,23,.07);
+}
+.arch-card:hover{transform:translateY(-8px);box-shadow:0 26px 54px rgba(18,20,23,.14);}
+.arch-card__top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;}
+.arch-card__name{
+  font-family:var(--font-mono);font-weight:700;font-size:clamp(18px,2.2vw,26px);
+  letter-spacing:-.01em;display:inline-block;transition:transform var(--dur) var(--ease);
+}
+.arch-card:hover .arch-card__name{transform:scale(1.06);transform-origin:left;}
+.arch-card__status{
+  font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;
+  padding:5px 11px;border-radius:var(--r-pill);white-space:nowrap;
+}
+.arch-card__status[data-st="supported"]{background:rgba(130,177,255,.16);color:#2A5BC0;}
+.arch-card__status[data-st="experimental"]{background:rgba(255,109,0,.14);color:#C25200;}
+.arch-card__status[data-st="planned"]{background:rgba(18,20,23,.07);color:rgba(18,20,23,.55);}
+.arch-card__note{font-size:14px;color:var(--on-light-mute);line-height:1.65;}
+.arch-card__bar{margin-top:20px;height:4px;border-radius:4px;background:rgba(18,20,23,.08);overflow:hidden;}
+.arch-card__bar i{
+  display:block;height:100%;border-radius:4px;
+  background:linear-gradient(90deg,var(--orange),var(--steel));
+  transform-origin:left;transform:scaleX(.2);transition:transform 900ms var(--ease);
+}
+.arch-card:hover .arch-card__bar i{transform:scaleX(1);}
+
+/* 移植步驟：編譯流水線 */
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(12px,1.8vw,22px);position:relative;}
+.step{
+  position:relative;background:var(--surface-2);border-radius:var(--r-md);
+  padding:clamp(20px,2.4vw,30px);
+  transition:transform 320ms var(--ease),box-shadow 320ms var(--ease),background-color 320ms var(--ease);
+}
+.step:hover{transform:translateY(-8px);background:#fff;box-shadow:0 22px 46px rgba(18,20,23,.12);}
+.step__num{
+  display:grid;place-items:center;width:40px;height:40px;border-radius:50%;
+  font-family:var(--font-mono);font-size:13px;font-weight:700;
+  background:var(--graphite);color:var(--steel);margin-bottom:16px;
+  transition:background-color var(--dur) var(--ease),color var(--dur) var(--ease);
+}
+.step:hover .step__num{background:var(--orange);color:#16110A;}
+.step__title{font-size:16px;font-weight:700;margin-bottom:8px;}
+.step__desc{font-size:13.5px;color:var(--on-light-mute);line-height:1.6;}
+.step::after{
+  content:'';position:absolute;right:-13px;top:42px;width:14px;height:2px;border-radius:2px;
+  background:rgba(18,20,23,.18);
+  transition:background-color var(--dur) var(--ease),width var(--dur) var(--ease);
+}
+.step:last-child::after{display:none;}
+.step:hover::after{background:var(--orange);width:20px;}
+
+/* ============================================================
+   10. 構建（深色終端）
+   ============================================================ */
+.build{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:clamp(22px,4vw,64px);align-items:center;}
+.term--build{border-radius:var(--r-lg);box-shadow:inset 0 0 0 1px rgba(230,236,245,.09),var(--sh-3);}
+.term--build .term__body{
+  display:block;padding:22px 24px 26px;font-size:13px;line-height:2;min-height:230px;
+}
+.term__line{
+  display:flex;gap:14px;opacity:0;animation:lineIn .5s var(--ease) forwards;
+  white-space:nowrap;overflow:hidden;
+}
+@keyframes lineIn{from{opacity:0;transform:translateX(-8px);}to{opacity:1;transform:none;}}
+.term__ln{color:rgba(230,236,245,.24);font-size:11px;min-width:22px;text-align:right;flex:0 0 auto;}
+.term:hover .cursor{animation-duration:.45s;}
+
+.build__side{display:flex;flex-direction:column;gap:clamp(16px,2vw,26px);}
+.build__steps{display:grid;gap:14px;}
+.build__step{
+  display:flex;gap:14px;align-items:flex-start;padding:14px 18px;border-radius:var(--r-xs);
+  background:rgba(230,236,245,.04);
+  transition:background-color var(--dur) var(--ease),transform var(--dur) var(--ease);
+}
+.build__step:hover{background:rgba(255,109,0,.10);transform:translateX(5px);}
+.build__step b{font-family:var(--font-mono);font-size:11px;color:var(--orange);letter-spacing:.08em;min-width:22px;}
+.build__step span{font-size:14px;color:var(--on-dark-mute);}
+.build__pills{display:flex;flex-wrap:wrap;gap:10px;}
+.build__arrow{
+  display:grid;place-items:center;width:56px;height:56px;border-radius:50%;
+  background:rgba(130,177,255,.14);color:var(--steel);
+  transition:transform var(--dur) var(--ease),background-color var(--dur) var(--ease);
+}
+.build__arrow:hover{transform:scale(1.12);background:rgba(130,177,255,.26);}
+
+/* ============================================================
+   11. 版本與許可證（淺色）
+   ============================================================ */
+.rel{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:clamp(24px,4vw,72px);align-items:start;}
+.rel__version .giant{font-size:clamp(52px,9vw,140px);}
+.rel__meta{display:flex;flex-wrap:wrap;gap:12px;margin-top:clamp(18px,2.4vw,28px);}
+.rel__meta span{
+  font-family:var(--font-mono);font-size:11.5px;letter-spacing:.06em;color:var(--on-light-mute);
+  padding:7px 14px;border-radius:var(--r-pill);background:rgba(18,20,23,.05);
+}
+.rel__license{display:inline-flex;align-items:center;gap:7px;position:relative;}
+.rel__license .material-symbols-rounded{font-size:15px;color:#B58900;}
+.rel__tip{
+  position:absolute;left:50%;top:calc(100% + 10px);transform:translateX(-50%) translateY(-6px);
+  width:220px;padding:10px 12px;border-radius:14px;background:var(--graphite);
+  color:var(--amber);font-family:var(--font-mono);font-size:10.5px;line-height:1.6;letter-spacing:.04em;
+  opacity:0;visibility:hidden;z-index:5;
+  transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease),visibility var(--dur);
+}
+.rel__license:hover .rel__tip,.rel__license:focus-within .rel__tip{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0);}
+
+.log__head{
+  font-family:var(--font-mono);font-size:10.5px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--on-light-faint);margin-bottom:14px;
+}
+.log__list{display:grid;gap:6px;}
+.log__item{
+  display:flex;gap:14px;align-items:baseline;padding:13px 16px;border-radius:var(--r-xs);
+  font-family:var(--font-mono);font-size:12.5px;letter-spacing:.02em;color:var(--on-light-mute);
+  transition:background-color var(--dur) var(--ease),color var(--dur) var(--ease),transform var(--dur) var(--ease);
+}
+.log__item:hover{background:rgba(255,109,0,.10);color:var(--on-light);transform:translateX(4px);}
+.log__dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto;background:var(--orange);margin-top:7px;}
+.log__v{color:var(--orange);flex:0 0 auto;}
+
+/* ============================================================
+   12. 獲取源碼（深色強調）
+   ============================================================ */
+.sec--source{background:radial-gradient(90% 70% at 50% 0%,#1A2130 0%,#121417 58%),var(--graphite);}
+.srccard{
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;
+  gap:clamp(20px,3vw,44px);align-items:center;
+  background:linear-gradient(120deg,#1A1F29 0%,#0E1116 100%);
+  border-radius:var(--r-lg);padding:clamp(24px,3.4vw,48px);
+  box-shadow:var(--sh-glow);
+  transition:transform 360ms var(--ease),box-shadow 360ms var(--ease);
+}
+.srccard:hover{transform:translateY(-4px);box-shadow:0 0 0 1px rgba(255,109,0,.5),0 30px 80px rgba(255,109,0,.24);}
+.srcicon{
+  position:relative;width:clamp(76px,8vw,104px);aspect-ratio:1;border-radius:26px;
+  background:linear-gradient(150deg,rgba(255,109,0,.22),rgba(130,177,255,.14));
+  display:grid;place-items:center;overflow:hidden;
+}
+.srcicon::before{
+  content:'[';position:absolute;left:14px;font-family:var(--font-mono);
+  font-size:34px;font-weight:700;color:var(--orange);
+}
+.srcicon::after{
+  content:']';position:absolute;right:14px;font-family:var(--font-mono);
+  font-size:34px;font-weight:700;color:var(--steel);
+}
+.srcicon i{
+  display:block;width:26px;height:2px;border-radius:2px;background:rgba(230,236,245,.42);
+  box-shadow:0 -7px 0 rgba(230,236,245,.22),0 7px 0 rgba(230,236,245,.22);
+}
+.srccard__name{
+  font-family:var(--font-mono);font-weight:700;
+  font-size:clamp(19px,2.6vw,30px);letter-spacing:-.01em;margin-bottom:10px;
+}
+.srccard__meta{
+  font-family:var(--font-mono);font-size:11.5px;letter-spacing:.08em;color:var(--on-dark-faint);
+  display:flex;flex-wrap:wrap;gap:6px 14px;
+}
+.srccard__meta b{color:var(--steel);font-weight:400;}
+.srccard__actions{display:flex;flex-wrap:wrap;gap:12px;}
+.srcsite{text-align:center;margin-top:clamp(20px,3vw,32px);font-family:var(--font-mono);font-size:11.5px;letter-spacing:.16em;color:var(--on-dark-faint);}
+.srcwarn{
+  text-align:center;margin-top:clamp(26px,4vw,44px);font-size:12.5px;
+  color:rgba(255,196,0,.86);font-family:var(--font-mono);letter-spacing:.06em;line-height:1.8;
 }
 
 /* ============================================================
-   网格与浸水玻璃卡片
+   13. 設計說明（靜態中文）
    ============================================================ */
-.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 26px; }
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; }
-
-/* 玻璃果冻块基底（水中抬起会浮起） */
-.card,
-.feature-card {
-  position: relative;
-  overflow: hidden;
-  border-radius: 22px;
-  padding: 30px 28px;
-  border: 1px solid rgba(8, 58, 165, 0.42);
-  background:
-    radial-gradient(120% 130% at 84% -14%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.22) 34%, rgba(255, 255, 255, 0) 62%),
-    radial-gradient(56% 100% at 10% 108%, rgba(40, 140, 250, 0.22) 0%, rgba(40, 140, 250, 0) 56%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(242, 250, 255, 0.78) 52%, rgba(216, 238, 255, 0.82) 100%);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.95),
-    inset 0 12px 18px -12px rgba(255, 255, 255, 0.98),
-    inset 0 -16px 26px -18px rgba(10, 60, 170, 0.45),
-    0 2px 1px rgba(10, 55, 160, 0.25),
-    0 20px 32px -20px rgba(4, 45, 150, 0.75),
-    0 0 22px -10px rgba(120, 215, 255, 0.9);
-  transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2), box-shadow 0.24s ease, background 0.24s ease;
+.notes{display:grid;gap:12px;}
+.note-item{
+  background:#fff;border-radius:var(--r-md);padding:6px;
+  box-shadow:0 8px 24px rgba(18,20,23,.06);
+  transition:box-shadow var(--dur) var(--ease);
 }
-
-/* 顶部弧面“水下弧光”：只落在卡片空白内边距区 */
-.card::before,
-.feature-card::before {
-  content: "";
-  position: absolute;
-  z-index: 2;
-  left: 7%; right: 7%;
-  top: -8px;
-  height: 34px;
-  border-radius: 50%;
-  background: radial-gradient(52% 100% at 50% 6%, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.35) 48%, rgba(255, 255, 255, 0) 78%);
-  pointer-events: none;
+.note-item:hover{box-shadow:0 16px 40px rgba(18,20,23,.10);}
+.note-item summary{
+  list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;
+  padding:16px 20px;font-size:15px;font-weight:700;
 }
-
-.card:hover,
-.feature-card:hover {
-  transform: translateY(-5px);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 1),
-    inset 0 14px 20px -12px rgba(255, 255, 255, 1),
-    inset 0 -16px 26px -16px rgba(10, 60, 170, 0.35),
-    0 5px 4px rgba(10, 55, 160, 0.25),
-    0 30px 44px -20px rgba(4, 55, 180, 0.85),
-    0 0 36px -8px rgba(140, 230, 255, 1);
-  background:
-    radial-gradient(130% 140% at 86% -16%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.3) 36%, rgba(255, 255, 255, 0) 62%),
-    radial-gradient(56% 100% at 10% 108%, rgba(60, 160, 255, 0.3) 0%, rgba(60, 160, 255, 0) 60%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 253, 255, 0.88) 50%, rgba(226, 244, 255, 0.9) 100%);
+.note-item summary::-webkit-details-marker{display:none;}
+.note-item summary .num{
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;
+  color:#fff;background:var(--graphite);padding:4px 9px;border-radius:8px;flex:0 0 auto;
 }
-
-/** 正文描述（多为 p.desc）统一文字质感 */
-.desc,
-.card p,
-.feature-card p {
-  font-size: 15px;
-  color: #1b4a7c;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+.note-item summary .material-symbols-rounded{
+  margin-left:auto;font-size:20px;color:var(--on-light-faint);
+  transition:transform var(--dur) var(--ease);flex:0 0 auto;
 }
-
-.card-icon,
-.feature-card .icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 58px;
-  height: 58px;
-  border-radius: 18px;
-  font-size: 26px;
-  margin-bottom: 16px;
-  background:
-    radial-gradient(120% 160% at 28% 12%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.35) 38%, rgba(255, 255, 255, 0) 60%),
-    linear-gradient(180deg, #c8f2ff 0%, #7ad6ff 45%, #2f9bf2 100%);
-  border: 1px solid rgba(8, 50, 160, 0.55);
-  box-shadow:
-    inset 0 0 0 1.5px rgba(255, 255, 255, 0.9),
-    inset 0 3px 6px -2px rgba(255, 255, 255, 0.9),
-    0 3px 3px rgba(6, 40, 140, 0.4),
-    0 8px 14px -6px rgba(6, 40, 140, 0.55);
-  text-shadow: 0 -1px 2px rgba(3, 30, 110, 0.5);
+.note-item[open] summary .material-symbols-rounded{transform:rotate(180deg);}
+.note-body{padding:0 22px 20px;font-size:13.5px;line-height:1.9;color:var(--on-light-mute);}
+.note-body p{margin-bottom:10px;}
+.note-body code{
+  font-family:var(--font-mono);font-size:12px;background:rgba(18,20,23,.06);
+  padding:1px 6px;border-radius:6px;color:#B14A00;
 }
-
-/* 特性卡副标题：圆润小胶囊 */
-.feature-card .sub {
-  display: inline-flex;
-  align-items: center;
-  margin: -6px 0 12px;
-  padding: 3px 12px;
-  border-radius: 999px;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: #0a4bb0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(222, 242, 255, 0.9));
-  border: 1px solid rgba(8, 55, 165, 0.35);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.9), 0 1px 2px rgba(8, 50, 150, 0.22);
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
-}
-
-.card .badge {
-  display: inline-block;
-  margin-top: 8px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #063a8f;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(219, 240, 255, 0.9));
-  border: 1px solid rgba(9, 60, 170, 0.35);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.9), 0 1px 2px rgba(8, 50, 150, 0.25);
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
-}
-
-/* feature-card 的 chips / tag */
-.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 13px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #0a4bb0;
-  background:
-    radial-gradient(120% 150% at 28% 12%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.4) 42%, rgba(255, 255, 255, 0) 64%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(222, 242, 255, 0.92));
-  border: 1px solid rgba(8, 55, 165, 0.4);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.9), 0 2px 3px rgba(8, 50, 150, 0.3);
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
-}
-
-/* 合作方 logo 玻璃板（含分区用简单列表） */
-.partner-simple {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 18px;
-  justify-content: center;
-  padding: 18px 0 8px;
-}
-
-.partner-simple .partner-logo {
-  position: relative;
-  overflow: hidden;
-  border-radius: 18px;
-  padding: 18px 26px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(8, 58, 165, 0.4);
-  background:
-    radial-gradient(120% 130% at 84% -14%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.2) 34%, rgba(255, 255, 255, 0) 62%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(232, 247, 255, 0.75) 55%, rgba(210, 235, 255, 0.8) 100%);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.95),
-    inset 0 10px 14px -10px rgba(255, 255, 255, 0.95),
-    0 2px 1px rgba(10, 55, 160, 0.22),
-    0 12px 18px -12px rgba(4, 45, 150, 0.55);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.partner-simple .partner-logo::before {
-  content: "";
-  position: absolute;
-  z-index: 2;
-  left: 10%; right: 10%;
-  top: -6px;
-  height: 18px;
-  border-radius: 50%;
-  background: radial-gradient(50% 100% at 50% 8%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.28) 50%, rgba(255, 255, 255, 0) 80%);
-  pointer-events: none;
-}
-
-.partner-simple .partner-logo:hover {
-  transform: translateY(-4px);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 1),
-    inset 0 12px 16px -10px rgba(255, 255, 255, 1),
-    0 5px 4px rgba(10, 55, 160, 0.22),
-    0 22px 28px -16px rgba(4, 55, 180, 0.8);
-}
-
-.partner-simple .partner-logo img {
-  height: 42px;
-  width: auto;
-  filter: drop-shadow(0 2px 3px rgba(8, 50, 150, 0.3));
-  -webkit-box-reflect: below 3px -webkit-gradient(linear, left top, left bottom, from(transparent), color-stop(0.78, transparent), to(rgba(255, 255, 255, 0.25)));
-}
-
-/* 分区里的 h3 / quote */
-.partner-simple h3,
-.partner-simple .quote {
-  font-size: 15px;
-  font-weight: 800;
-  color: #073a93;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-/* 深蓝玻璃提示条（notice）：轻微内凹的果冻板 */
-.notice {
-  position: relative;
-  margin: 26px 0;
-  padding: 16px 22px;
-  border-radius: 16px;
-  font-size: 14px;
-  color: #eaf6ff;
-  border: 1px solid rgba(8, 60, 180, 0.7);
-  background:
-    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0px, rgba(255, 255, 255, 0.06) 1px, rgba(255, 255, 255, 0) 1px, rgba(255, 255, 255, 0) 4px),
-    radial-gradient(120% 170% at 84% -20%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.12) 36%, rgba(255, 255, 255, 0) 60%),
-    linear-gradient(180deg, #2b7de6 0%, #115cc9 55%, #083f9e 100%);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.35),
-    inset 0 -10px 18px -12px rgba(2, 20, 80, 0.8),
-    0 2px 1px rgba(10, 55, 160, 0.3),
-    0 12px 18px -12px rgba(4, 45, 150, 0.6);
-  text-shadow: 0 -1px 1px rgba(2, 20, 80, 0.5);
+.note-body ul{display:grid;gap:6px;}
+.note-body li{padding-left:16px;position:relative;}
+.note-body li::before{
+  content:'';position:absolute;left:0;top:11px;width:5px;height:5px;border-radius:50%;background:var(--orange);
 }
 
 /* ============================================================
-   Footer：深蓝玻璃拉丝条
+   14. 頁腳
    ============================================================ */
-.footer {
-  margin-top: 40px;
-  border-radius: 26px 26px 0 0;
-  border-top: 1px solid rgba(6, 45, 150, 0.55);
-  background:
-    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.075) 0px, rgba(255, 255, 255, 0.075) 1px, rgba(255, 255, 255, 0) 1px, rgba(255, 255, 255, 0) 3px),
-    radial-gradient(130% 160% at 18% -22%, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.05) 38%, rgba(255, 255, 255, 0) 62%),
-    linear-gradient(180deg, #154f9e 0%, #0d3f86 42%, #072c62 100%);
-  color: rgba(232, 245, 255, 0.92);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    inset 0 -2px 0 rgba(3, 22, 70, 0.6),
-    0 -10px 26px -18px rgba(3, 30, 100, 0.8);
+.foot{background:var(--graphite);padding:clamp(64px,9vw,140px) var(--pad-x) clamp(28px,4vw,48px);border-top:1px solid rgba(230,236,245,.06);}
+.foot__inner{max-width:var(--maxw);margin:0 auto;}
+.foot__title{font-size:clamp(48px,12.6vw,180px);margin-bottom:clamp(22px,4vw,44px);}
+.foot__mails{display:flex;flex-wrap:wrap;gap:clamp(16px,3vw,48px);margin-bottom:18px;}
+.foot__mail{
+  position:relative;font-family:var(--font-mono);
+  font-size:clamp(15px,2.2vw,26px);letter-spacing:-.01em;color:var(--on-dark);
+  padding-bottom:4px;transition:color var(--dur) var(--ease);
 }
-
-.footer-inner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 22px 4px;
-  font-size: 13px;
-  color: rgba(232, 245, 255, 0.88);
-  text-shadow: 0 -1px 1px rgba(2, 18, 60, 0.6);
+.foot__mail::after{
+  content:'';position:absolute;left:0;bottom:0;height:2px;width:0;
+  background:var(--orange);border-radius:2px;transition:width 380ms var(--ease);
 }
-
-.footer a {
-  color: #cfeeff;
-  font-weight: 700;
-  text-shadow: 0 -1px 1px rgba(2, 18, 60, 0.6);
-  transition: color 0.15s ease, text-shadow 0.15s ease;
+.foot__mail:hover{color:var(--orange);}
+.foot__mail:hover::after{width:100%;}
+.foot__sub{font-size:14px;color:var(--on-dark-mute);margin-bottom:clamp(40px,6vw,80px);}
+.foot__bottom{
+  display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center;
+  padding-top:24px;border-top:1px solid rgba(230,236,245,.07);
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.10em;color:var(--on-dark-faint);
 }
-.footer a:hover {
-  color: #ffffff;
-  text-shadow: 0 0 10px rgba(160, 230, 255, 0.9), 0 -1px 1px rgba(2, 18, 60, 0.6);
-}
+.foot__bottom a{transition:color var(--dur) var(--ease);}
+.foot__bottom a:hover{color:var(--steel);}
 
 /* ============================================================
-   响应式（断点契约不变）
+   15. 響應式：平板 / 手機
    ============================================================ */
-@media (max-width: 900px) {
-  .container { width: 100%; max-width: 100%; padding: 0 20px; }
-
-  .nav-inner {
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
-    padding: 12px 0;
+@media (max-width:1180px){
+  .nav__links{gap:10px;}
+  .nav__link{font-size:12.5px;}
+}
+@media (max-width:1080px){
+  .nav__links{display:none;}
+  .hero__inner{grid-template-columns:1fr;}
+  .hero__art{order:-1;min-height:clamp(240px,50vw,380px);}
+  .core-svg{width:min(70%,360px);}
+  .what__grid{grid-template-columns:1fr;}
+  .build{grid-template-columns:1fr;}
+  .rel{grid-template-columns:1fr;}
+  .arch-grid{grid-template-columns:1fr;}
+  .steps{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .step::after{display:none;}
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:158px;}
+  .tile--big{grid-column:span 2;grid-row:span 1;}
+  .srccard{grid-template-columns:1fr;text-align:left;}
+  .srcicon{width:78px;}
+}
+@media (max-width:900px){
+  /* 模塊放射圖 → 縱向清單 */
+  .radial{height:auto;display:flex;flex-direction:column;gap:14px;padding-left:26px;margin-top:20px;}
+  .radial__links{display:none;}
+  .radial::before{
+    content:'';position:absolute;left:9px;top:10px;bottom:10px;width:2px;
+    background:linear-gradient(180deg,var(--orange),var(--steel));opacity:.35;border-radius:2px;
   }
-
-  .nav-links { flex-wrap: wrap; justify-content: center; gap: 6px; }
-
-  .hero-grid { grid-template-columns: 1fr; text-align: center; }
-  .hero-actions { justify-content: center; }
-
-  .grid-2, .grid-3 { grid-template-columns: 1fr; gap: 20px; }
-
-  .section-head { margin-bottom: 26px; }
-  h1 { font-size: 36px; }
-  h2 { font-size: 27px; }
-
-  .hero { padding: 46px 0 30px; }
-  .page-hero { padding: 30px 0 24px; }
-  .hero-art { min-height: 240px; }
-  .hero-logo { width: 180px; height: 180px; padding: 16px; }
-
-  .partner-simple { gap: 12px; }
-  .partner-simple .partner-logo { padding: 12px 16px; }
-  .partner-simple .partner-logo img { height: 34px; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
+  .corenode{position:relative;left:auto;top:auto;transform:none;width:150px;margin:0 auto 20px;}
+  .radial.is-focused .corenode__ring{transform:none;}
+  .mod-card{
+    position:relative;left:auto;top:auto;transform:none;width:100%;
+    display:flex;align-items:center;gap:14px;
   }
-}
-
-
-/* ============================================================
-   Aqua v3 · 极致拟物精修覆盖层
-   依据渲染验收：卡片厚玻璃边、页脚 Dock 玻璃、标题立体字、
-   按钮糖衣锐化、导航顶部反光罩。选择器同 v2 或更强，后出现即生效。
-   ============================================================ */
-
-/* 背景更饱和通透，条纹对比加强 */
-body {
-  background-image:
-    radial-gradient(120% 70% at 12% -12%, rgba(255,255,255,1) 0%, rgba(255,255,255,0.45) 38%, rgba(255,255,255,0) 64%),
-    repeating-linear-gradient(90deg, rgba(255,255,255,0.80) 0px, rgba(255,255,255,0.80) 1px, rgba(255,255,255,0) 1px, rgba(255,255,255,0) 5px),
-    repeating-linear-gradient(90deg, rgba(70,150,235,0.07) 0px, rgba(70,150,235,0.07) 1px, rgba(70,150,235,0) 1px, rgba(70,150,235,0) 13px),
-    linear-gradient(180deg, #d3edff 0%, #ddf3ff 22%, #bfe2fb 58%, #9ec6ea 100%);
-}
-
-/* 导航：顶部玻璃反光罩亮边，去“偏平” */
-.nav {
-  box-shadow:
-    inset 0 2px 0 rgba(255,255,255,1),
-    inset 0 0 9px rgba(255,255,255,0.85),
-    inset 0 -1px 0 rgba(255,255,255,0.85),
-    0 1px 1px rgba(255,255,255,0.9),
-    0 18px 30px -18px rgba(4,42,120,0.85);
-}
-
-/* ---------- 蓝色糖果按钮：糖衣锐化 ---------- */
-.btn,
-.nav-links a.btn-mail,
-.nav-links a.nav-cta,
-.nav-links a.btn {
-  background:
-    linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.58) 7%, rgba(255,255,255,0.14) 18%, rgba(255,255,255,0) 26%),
-    radial-gradient(78% 210% at 50% -38%, rgba(255,255,255,1) 0%, rgba(255,255,255,0.95) 18%, rgba(255,255,255,0.30) 44%, rgba(255,255,255,0) 62%),
-    radial-gradient(24% 44% at 26% 9%, rgba(255,255,255,1) 0%, rgba(255,255,255,0.60) 40%, rgba(255,255,255,0) 70%),
-    radial-gradient(60% 130% at 82% 118%, rgba(0,60,215,0.70) 0%, rgba(0,60,215,0) 58%),
-    linear-gradient(180deg, #a5e6ff 0%, #4cc2ff 20%, #1489f2 47%, #0a5fd8 74%, #053c9e 100%);
-  box-shadow:
-    inset 0 2px 0 rgba(255,255,255,1),
-    inset 0 0 0 1px rgba(255,255,255,0.55),
-    inset 0 3px 7px -3px rgba(255,255,255,0.95),
-    inset 0 -12px 18px -12px rgba(3,26,120,0.72),
-    0 3px 2px rgba(2,28,120,0.60),
-    0 6px 15px -6px rgba(10,85,230,0.75),
-    0 0 16px -4px rgba(150,230,255,0.90);
-}
-
-.btn:hover,
-.nav-links a.btn-mail:hover,
-.nav-links a.nav-cta:hover,
-.nav-links a.btn:hover {
-  filter: saturate(1.28) brightness(1.10);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.66) 8%, rgba(255,255,255,0.18) 20%, rgba(255,255,255,0) 28%),
-    radial-gradient(84% 220% at 50% -42%, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 20%, rgba(255,255,255,0.40) 48%, rgba(255,255,255,0) 66%),
-    radial-gradient(26% 48% at 25% 7%, rgba(255,255,255,1) 0%, rgba(255,255,255,0.70) 44%, rgba(255,255,255,0) 74%),
-    radial-gradient(60% 130% at 82% 118%, rgba(0,60,215,0.60) 0%, rgba(0,60,215,0) 58%),
-    linear-gradient(180deg, #b9eeff 0%, #61caff 18%, #1d94f6 46%, #0c68e4 74%, #0a47b2 100%);
-  box-shadow:
-    inset 0 3px 0 rgba(255,255,255,1),
-    inset 0 0 0 1px rgba(255,255,255,0.80),
-    inset 0 5px 10px -3px rgba(255,255,255,1),
-    inset 0 -12px 18px -11px rgba(4,30,130,0.50),
-    0 4px 3px rgba(2,28,120,0.55),
-    0 14px 26px -8px rgba(10,90,230,0.95),
-    0 0 24px -2px rgba(170,240,255,1);
-}
-
-.btn:active,
-.nav-links a.btn-mail:active,
-.nav-links a.nav-cta:active,
-.nav-links a.btn:active {
-  transform: translateY(2px) scale(0.97);
-  filter: saturate(0.9) brightness(0.96);
-  background: linear-gradient(180deg, #5fc8ff 0%, #1f92f0 42%, #0b64db 72%, #0848b4 100%);
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,0.35),
-    inset 0 7px 14px -2px rgba(2,22,110,0.95),
-    inset 0 4px 8px rgba(2,22,110,0.60),
-    inset 0 -1px 2px -1px rgba(255,255,255,0.30),
-    0 1px 1px rgba(2,28,120,0.40),
-    0 2px 5px -2px rgba(10,80,220,0.50);
-}
-
-/* 白/亮青糖果按钮同样锐化顶部糖衣 */
-.btn-ghost,
-.btn-outline {
-  box-shadow:
-    inset 0 2px 0 rgba(255,255,255,1),
-    inset 0 0 0 1.5px rgba(255,255,255,1),
-    inset 0 3px 6px -2px rgba(255,255,255,1),
-    inset 0 -8px 12px -8px rgba(8,60,180,0.28),
-    0 3px 2px rgba(5,45,150,0.40),
-    0 8px 16px -6px rgba(20,100,235,0.45),
-    0 0 14px -4px rgba(190,235,255,0.95);
-}
-
-/* ---------- 卡片：厚玻璃边 + 顶部锐弧高光 + 积水影 ---------- */
-.card,
-.feature-card,
-.partner-simple .partner-logo {
-  border: 1px solid rgba(5,48,148,0.75);
-  box-shadow:
-    inset 0 0 0 2px rgba(255,255,255,0.98),
-    inset 0 2px 2px rgba(255,255,255,1),
-    inset 0 10px 16px -10px rgba(255,255,255,0.95),
-    inset 0 -22px 32px -20px rgba(8,52,175,0.55),
-    0 4px 3px rgba(6,45,150,0.35),
-    0 24px 40px -20px rgba(3,45,150,0.90),
-    0 0 26px -8px rgba(130,225,255,1);
-}
-
-.card::before,
-.feature-card::before {
-  top: 3px;
-  left: 5%;
-  right: 5%;
-  height: 22px;
-  border-radius: 50%;
-  background: radial-gradient(56% 92% at 50% 6%, rgba(255,255,255,1) 0%, rgba(255,255,255,0.70) 46%, rgba(255,255,255,0) 82%);
-  opacity: 0.92;
-}
-
-.card:hover,
-.feature-card:hover {
-  box-shadow:
-    inset 0 0 0 2px rgba(255,255,255,1),
-    inset 0 3px 3px rgba(255,255,255,1),
-    inset 0 12px 18px -10px rgba(255,255,255,1),
-    inset 0 -18px 26px -16px rgba(10,60,170,0.40),
-    0 6px 5px rgba(6,45,150,0.35),
-    0 34px 48px -20px rgba(3,55,185,1),
-    0 0 40px -8px rgba(150,235,255,1);
-}
-
-/* ---------- 标题：压在湿润玻璃上的立体字 ---------- */
-h1, h2, h3 {
-  text-shadow:
-    0 1px 0 rgba(255,255,255,0.92),
-    0 0 1px rgba(255,255,255,0.92),
-    0 -1px 1px rgba(255,255,255,0.42),
-    0 2px 2px rgba(3,34,110,0.32),
-    0 6px 14px -6px rgba(20,100,220,0.35);
-}
-
-.hero .hl {
-  filter: drop-shadow(0 1px 0 rgba(255,255,255,0.95)) drop-shadow(0 2px 2px rgba(3,32,110,0.35)) drop-shadow(0 4px 10px rgba(40,150,255,0.30));
-}
-
-/* ---------- Footer：深邃 Dock 玻璃条 ---------- */
-.footer {
-  border-top: 1px solid rgba(20,100,235,0.95);
-  background:
-    repeating-linear-gradient(180deg, rgba(255,255,255,0.09) 0px, rgba(255,255,255,0.09) 1px, rgba(255,255,255,0) 1px, rgba(255,255,255,0) 4px),
-    radial-gradient(110% 260% at 14% -30%, rgba(150,230,255,0.50) 0%, rgba(90,180,255,0.16) 36%, rgba(90,180,255,0) 64%),
-    linear-gradient(180deg, #1e6ed4 0%, #124fa8 28%, #0a3578 58%, #041d4c 100%);
-  box-shadow:
-    inset 0 2px 1px rgba(255,255,255,0.90),
-    inset 0 1px 0 rgba(255,255,255,1),
-    inset 0 0 46px rgba(3,20,80,0.55),
-    inset 0 -3px 0 rgba(1,12,45,0.90),
-    0 -16px 32px -22px rgba(2,25,90,0.95);
-}
-
-
-/* ============================================================
-   Aqua v4 · 紧凑可读 + 合作方卡片化（依据用户反馈）
-   1) 首页 hero 不再放大 logo，主内容上移可读；
-   2) 每个合作伙伴独立成"大玻璃框"：logo 放大，简介/链接同框。
-   ============================================================ */
-
-/* ---- 首页 hero 紧凑化：隐藏巨型 logo 区，单列居中 ---- */
-.hero { padding: 30px 0 24px; }
-.hero-grid { grid-template-columns: 1fr; gap: 0; text-align: center; }
-.hero h1 { font-size: clamp(30px, 4.6vw, 42px); line-height: 1.22; }
-.hero p.lead { max-width: 720px; margin: 0 auto 8px; }
-.hero-actions { justify-content: center; margin-top: 20px; }
-.hero-art { display: none; }
-
-/* ---- 子页页头小幅压缩，让正文早点出现 ---- */
-.page-hero { padding: 28px 0 22px; }
-.section { padding: 32px 0 44px; }
-
-/* ---- 合作方卡片化：一个大玻璃框装下 logo + 简介 + 链接 ---- */
-.partner-simple {
-  position: relative;
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  justify-content: center;
-  gap: 26px 34px;
-  margin: 0 0 24px;
-  padding: 34px 36px;
-  border: 1px solid rgba(5, 48, 148, 0.75);
-  border-radius: 24px;
-  background:
-    radial-gradient(120% 130% at 84% -14%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.25) 34%, rgba(255, 255, 255, 0) 62%),
-    radial-gradient(56% 100% at 10% 108%, rgba(40, 140, 250, 0.18) 0%, rgba(40, 140, 250, 0) 56%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(244, 250, 255, 0.86) 52%, rgba(218, 238, 255, 0.9) 100%);
-  box-shadow:
-    inset 0 0 0 2px rgba(255, 255, 255, 0.98),
-    inset 0 2px 2px rgba(255, 255, 255, 1),
-    inset 0 10px 16px -10px rgba(255, 255, 255, 0.95),
-    inset 0 -22px 32px -20px rgba(8, 52, 175, 0.5),
-    0 4px 3px rgba(6, 45, 150, 0.32),
-    0 24px 40px -20px rgba(3, 45, 150, 0.85),
-    0 0 26px -8px rgba(130, 225, 255, 1);
-}
-
-/* 未来新增合作伙伴时，相邻卡片自动拉开 */
-.partner-simple + .partner-simple { margin-top: 28px; }
-
-/* 合作卡片顶部穹顶高光 */
-.partner-simple::before {
-  content: "";
-  position: absolute;
-  z-index: 1;
-  top: 3px;
-  left: 4%;
-  right: 4%;
-  height: 22px;
-  border-radius: 50%;
-  background: radial-gradient(56% 92% at 50% 6%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.7) 46%, rgba(255, 255, 255, 0) 82%);
-  pointer-events: none;
-}
-
-/* 合作方 logo 玻璃板放大，撑住牌面 */
-.partner-simple .partner-logo {
-  padding: 22px 34px;
-  border-radius: 20px;
-}
-.partner-simple .partner-logo img {
-  height: 92px;
-  width: auto;
-  max-width: 240px;
-  object-fit: contain;
-  filter: drop-shadow(0 3px 4px rgba(8, 50, 150, 0.35));
-}
-
-.partner-simple h3 { font-size: 20px; margin-bottom: 6px; }
-.partner-simple .quote { font-size: 15px; line-height: 1.7; max-width: 640px; }
-.partner-simple .btn-outline { white-space: nowrap; }
-
-@media (max-width: 900px) {
-  .partner-simple {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    text-align: center;
-    padding: 26px 20px;
-    gap: 14px;
+  .mod-card::before{
+    content:'';position:absolute;left:-21px;top:50%;width:8px;height:8px;border-radius:50%;
+    background:var(--steel);transform:translateY(-50%);
+    transition:background-color var(--dur) var(--ease),transform var(--dur) var(--ease);
   }
-  .partner-simple .partner-logo { padding: 14px 26px; }
-  .partner-simple .partner-logo img { height: 74px; }
-  .partner-simple .quote { max-width: 100%; }
-  .hero h1 { font-size: 31px; }
+  .mod-card:hover,.mod-card.is-active{transform:translateX(6px) scale(1.01);}
+  .mod-card:hover::before,.mod-card.is-active::before{background:var(--orange);transform:translateY(-50%) scale(1.45);}
+  .mod-card__icon{margin-bottom:0;flex:0 0 auto;}
+  .mod-card__name{margin-bottom:2px;}
+  .radial.is-focused .mod-card:not(.is-active){opacity:.78;filter:none;}
+  .mod-detail{grid-template-columns:1fr;}
+}
+@media (max-width:720px){
+  .nav{padding:14px 16px;}
+  .nav__inner{padding:8px 12px;}
+  .nav__brandtext{display:none;}
+  .nav__pop{width:240px;right:-24px;}
+  .steps{grid-template-columns:1fr;}
+  .hero{padding-top:110px;}
+  .hero__scroll{display:none;}
+  .foot__mails{flex-direction:column;gap:14px;}
+  .srccard__actions{width:100%;}
+  .srccard__actions .btn{flex:1 1 auto;justify-content:center;}
+  .mod-detail{padding:20px;}
+  .rel__tip{left:auto;right:-40px;transform:translateY(-6px);}
+  .rel__license:hover .rel__tip,.rel__license:focus-within .rel__tip{transform:translateY(0);}
+}
+@media (max-width:520px){
+  .tiles{grid-template-columns:1fr;grid-auto-rows:152px;}
+  .tile--big,.tile--wide{grid-column:span 1;}
+  .seg__btn{padding:6px 9px;font-size:11px;}
+  .nav__version{display:none;}
+  .btn--sm{padding:8px 14px;font-size:12px;}
+  .btn--lg{padding:14px 24px;font-size:14px;}
+  .hero__corner{display:none;}
+  .sec{padding-left:18px;padding-right:18px;}
 }
 
-/* v4.1 fix: img.brand-logo 自身即 img，尺寸规则需直接命中 img 元素（.brand .brand-logo img 永不匹配） */
-img.brand-logo {
-  width: 34px !important;
-  height: 34px !important;
-  object-fit: contain;
-}
-
-
-/* ===== v4.2：无logo合作伙伴的文字徽标（小明之父工作室 XMZF） ===== */
-.partner-simple .partner-logo.partner-logo-text {
-  padding: 20px 34px;
-  font-size: 40px;
-  font-weight: 900;
-  letter-spacing: 3px;
-  line-height: 1.1;
-  color: #073a93;
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.95),
-    0 2px 3px rgba(4, 40, 120, 0.28);
-  background:
-    radial-gradient(120% 160% at 28% 10%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.4) 40%, rgba(255, 255, 255, 0) 64%),
-    linear-gradient(180deg, #ffffff 0%, #eaf6ff 55%, #d2e9fd 100%);
-}
-@media (max-width: 900px) {
-  .partner-simple .partner-logo.partner-logo-text {
-    font-size: 30px;
-    padding: 14px 26px;
+/* ============================================================
+   16. 無障礙：尊重減少動效偏好
+   ============================================================ */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
   }
+  html{scroll-behavior:auto;}
+  .pin,.cursor,.tile__cur,.core-svg .core-fill,.hero__scroll i{animation:none !important;opacity:.9 !important;}
+  .link-flow{animation:none !important;}
+  .tile.is-flipped .tile__inner{transform:none;}
+  .reveal{opacity:1;transform:none;}
+  .shape{opacity:1 !important;transform:none !important;}
 }
 
-
-/* ===== v5：拟物化矢量图标 =====
-   卡片图标由“简单线条 SVG”升级为“自绘拟物玻璃盘+立体符号”。
-   .card-icon 原蓝渐变小方块让位，改由 svg 独立绘制圆润盘体、
-   顶部高光、地面投影与立体符号，形成拟物化矢量图质感。 */
-.card-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: auto;
-  height: auto;
-  min-width: 0;
-  min-height: 0;
-  border-radius: 0;
-  font-size: 0;
-  margin-bottom: 14px;
-  background: none;
-  border: none;
-  box-shadow: none;
-  text-shadow: none;
+/* 焦點可見 */
+a:focus-visible,button:focus-visible,[tabindex]:focus-visible{
+  outline:2px solid var(--steel);outline-offset:3px;border-radius:10px;
 }
-
-.card-icon svg {
-  display: block;
-  width: 62px;
-  height: 62px;
-  filter: drop-shadow(0 7px 11px rgba(6, 44, 140, 0.4));
-}
-
-/* ============================================================
-   致谢页补充样式（仅新增，不覆盖主站主题）
-   ============================================================ */
-/* 导航文字徽标（无水印图片时替代 logo） */
-.brand-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  font-size: 18px;
-  font-weight: 900;
-  color: #ffffff;
-  text-shadow: 0 -1px 2px rgba(3, 30, 110, 0.6);
-  background:
-    radial-gradient(120% 160% at 28% 10%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.35) 42%, rgba(255, 255, 255, 0) 62%),
-    linear-gradient(180deg, #5ec6ff 0%, #1f90f2 52%, #0b62d8 100%);
-  border: 1px solid rgba(7, 45, 150, 0.65);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.85),
-    inset 0 2px 3px rgba(255, 255, 255, 0.55),
-    inset 0 -5px 9px -5px rgba(4, 30, 110, 0.65),
-    0 2px 3px rgba(6, 40, 130, 0.35),
-    0 7px 14px -8px rgba(8, 80, 210, 0.7);
-  -webkit-box-reflect: below 2px -webkit-gradient(linear, left top, left bottom, from(transparent), color-stop(0.62, transparent), to(rgba(255, 255, 255, 0.3)));
-  transform: translateZ(0);
-}
-
-/* 致谢主体玻璃大卡（屏幕前每一位支持者） */
-.support-card {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 40px 38px;
-  text-align: center;
-}
-.support-card h3 { margin: 0 0 8px; }
-.support-card .desc { max-width: 580px; margin: 0 auto; }
-.support-card .chips { justify-content: center; margin-top: 24px; }
-.support-card .support-actions { margin-top: 26px; }
-
-/* 页头徽章行距微调 */
-.hero .crumbs { margin-bottom: 18px; }
-
-
-/* ============================================================
-   vaylo.nex.laswi.com.cn 下载页补充样式（仅新增，不覆盖主站主题）
-   ============================================================ */
-/* 导航真实 logo（复用原站契约：玻璃小圆角方块） */
-.brand .brand-logo { display: inline-flex; }
-.brand .brand-logo img {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  object-fit: contain;
-}
-
-/* hero 副标语胶囊 */
-.vaylo-tag {
-  display: inline-block;
-  margin-top: 14px;
-  padding: 6px 16px;
-  font-size: 14px;
-  font-weight: 700;
-  color: #ffffff;
-  text-shadow: 0 -1px 1px rgba(3, 30, 110, 0.45);
-  background: linear-gradient(180deg, #5ec6ff 0%, #1f90f2 60%, #0b62d8 100%);
-  border: 1px solid rgba(7, 45, 150, 0.55);
-  border-radius: 999px;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.7),
-    inset 0 1px 2px rgba(255, 255, 255, 0.55),
-    0 2px 4px rgba(6, 40, 130, 0.3),
-    0 6px 14px -6px rgba(8, 80, 210, 0.65);
-}
-
-/* 下载页双栏栅格 */
-.vaylo-grid {
-  display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  gap: 24px;
-  align-items: stretch;
-}
-.vaylo-grid > .card {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: left;
-}
-.vaylo-grid .card h3 { margin: 6px 0 10px; }
-.vaylo-grid .desc { max-width: none; }
-
-/* 下载信息卡 */
-.dl-card .dl-name {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-.dl-card .dl-name code {
-  font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
-  font-size: 18px;
-  font-weight: 800;
-  color: #063a9e;
-}
-.dl-card .dl-badge {
-  padding: 3px 10px;
-  font-size: 12px;
-  font-weight: 800;
-  color: #ffffff;
-  border-radius: 999px;
-  background: linear-gradient(180deg, #5ec6ff, #1f90f2 55%, #0b62d8);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.55), 0 2px 4px rgba(6,40,130,.25);
-}
-.dl-meta {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 6px 18px;
-  margin: 10px 0 4px;
-  font-size: 13.5px;
-}
-.dl-meta dt { color: rgba(4, 45, 130, 0.72); font-weight: 700; white-space: nowrap; }
-.dl-meta dd { margin: 0; color: #0a3c96; font-weight: 600; word-break: break-all; }
-.dl-note { margin: 8px 0 16px; font-size: 12.5px; color: rgba(4, 45, 130, 0.66); line-height: 1.7; }
-.btn-lg {
-  padding: 14px 30px;
-  font-size: 16px;
-  border-radius: 999px;
-}
-.vaylo-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 22px; }
-.vaylo-actions .btn-lg + .btn-lg { /* noop */ }
-
-@media (max-width: 900px) {
-  .vaylo-grid { grid-template-columns: 1fr; }
-}
-
-
-/* ============================================================
-   nex.laswi.com.cn 补充样式（仅新增，不覆盖主站主题）
-   ============================================================ */
-/* 内核特性卡：居中玻璃小卡 */
-.kernel-card { text-align: center; padding: 34px 26px; }
-.kernel-card .en { display: block; font-size: 12px; font-weight: 800; letter-spacing: 0.16em; color: rgba(4,45,130,.5); text-transform: uppercase; }
-.kernel-card h3 { margin: 10px 0 8px; }
-.kernel-card p { max-width: 330px; margin: 0 auto; }
-.kernel-principles { justify-content: center; margin-top: 8px; }
-
-/* 双卡区（VayloOS 联动） */
-.nex-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 24px; align-items: stretch; }
-.nex-grid > .card { display: flex; flex-direction: column; justify-content: center; text-align: left; }
-.nex-grid .card h3 { margin: 6px 0 10px; }
-.nex-grid .desc { max-width: none; }
-@media (max-width: 900px) { .nex-grid { grid-template-columns: 1fr; } }
-
 </style>
 </head>
 <body>
+<!-- ============================================================
+     ① 固定導航
+     ============================================================ -->
+<header class="nav" id="nav">
+  <div class="nav__inner">
+    <a class="nav__brand" href="#top" aria-label="Nex Kernel">
+      <!-- Logo：根目錄純文件名引用 -->
+      <img class="nav__logo" src="logo.png" alt="LaswI Studio logo" width="34" height="34">
+      <span class="nav__brandtext">LaswI</span>
+    </a>
 
-  <nav class="nav">
-    <div class="container nav-inner">
-      <a class="brand" href="https://laswi.com.cn">
-        <span class="brand-logo"><img src="data:image/png;base64,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" alt="LaswI 标志" /></span>
-        LaswI
+    <nav class="nav__links" aria-label="主導航">
+      <a class="nav__link" href="#top" data-i18n="nav.home">首頁</a>
+      <a class="nav__link" href="#what" data-i18n="nav.what">定位</a>
+      <a class="nav__link" href="#modules" data-i18n="nav.modules">內核模塊</a>
+      <a class="nav__link" href="#features" data-i18n="nav.features">特性</a>
+      <a class="nav__link" href="#ports" data-i18n="nav.ports">架構與移植</a>
+      <a class="nav__link" href="#build" data-i18n="nav.build">構建</a>
+      <a class="nav__link" href="#version" data-i18n="nav.version">版本</a>
+    </nav>
+
+    <div class="nav__actions">
+      <div class="seg" role="group" aria-label="Language">
+        <button class="seg__btn" data-lang="zh-CN" type="button">簡體</button>
+        <button class="seg__btn" data-lang="zh-TW" type="button">繁體</button>
+        <button class="seg__btn" data-lang="en" type="button">EN</button>
+      </div>
+
+      <!-- 版本角標：懸停展開更新日誌 -->
+      <div class="nav__version" tabindex="0" aria-label="version">
+        <span id="navVersion">v0.1.0</span>
+        <div class="nav__pop">
+          <h4 data-i18n="nav.changelog">更新日誌</h4>
+          <ul id="navChangelog"></ul>
+        </div>
+      </div>
+
+      <a class="btn btn--steel btn--sm" id="navDocs" href="#" target="_blank" rel="noopener">
+        <span data-i18n="nav.docsLabel">閱讀文檔</span>
       </a>
-      <div class="nav-links">
-        <a href="https://laswi.com.cn">官网首页</a>
-        <a href="https://laswi.com.cn/os.html">系统产品</a>
-        <a href="https://laswi.com.cn/about.html">关于我们</a>
-        <a class="nav-cta btn-mail" href="mailto:3199704668@qq.com">合作联系</a>
-      </div>
+      <a class="btn btn--orange btn--sm" id="navSource" href="#" target="_blank" rel="noopener">
+        <span data-i18n="nav.sourceLabel">獲取源碼</span>
+        <span class="material-symbols-rounded">arrow_outward</span>
+      </a>
     </div>
-  </nav>
+  </div>
+</header>
 
-  <header class="hero">
-    <div class="container">
-      <span class="crumbs">LaswI Studio · Nex Kernel</span>
-      <h1>Nex Kernel</h1>
-      <span class="vaylo-tag">自研操作系统内核</span>
-      <p class="lead">
-        Nex Kernel 是团队自研的操作系统内核，启动、调度与系统服务等关键环节均由团队自主设计，
-        以自主可控和长期演进为原则，作为 VayloOS 的底层基石。
-      </p>
-      <div class="vaylo-actions">
-        <a class="btn btn-blue btn-lg" href="https://laswi.com.cn/os.html" target="_blank" rel="noopener">系统产品页 →</a>
-        <a class="btn btn-outline btn-lg" href="https://vaylo.nex.laswi.com.cn" target="_blank" rel="noopener">体验 VayloOS</a>
+<main id="top">
+<!-- ============================================================
+     ② Hero 首屏
+     ============================================================ -->
+<section class="hero" id="hero">
+  <div class="hero__bg" aria-hidden="true">
+    <span class="shape shape--glow"></span>
+    <span class="shape shape--oct" data-par="0.018"></span>
+    <span class="shape shape--oct2" data-par="0.032"></span>
+    <span class="shape shape--bar shape--bar1" data-par="0.026"></span>
+    <span class="shape shape--bar shape--bar2" data-par="0.040"></span>
+    <span class="shape shape--bar shape--bar3" data-par="0.022"></span>
+    <span class="shape shape--ring"></span>
+  </div>
+
+  <div class="hero__inner">
+    <div class="hero__copy">
+      <div class="hero__brandrow">
+        <img class="hero__logo" src="logo.png" alt="LaswI Studio logo" width="40" height="40">
+        <span class="hero__brandmono">LaswI</span>
       </div>
-    </div>
-  </header>
 
-  <section class="section">
-    <div class="container">
-      <div class="section-head">
-        <span class="kicker">KERNEL</span>
-        <h2>系统底层的完整实践</h2>
-        <p>不满足于只做界面与体验，内核层同样由团队亲手搭建。</p>
-      </div>
+      <h1 class="hero__title">
+        <span class="giant giant--hero">NEX</span>
+        <span class="giant giant--hero">KERNEL</span>
+      </h1>
 
-      <div class="grid-3">
-        <div class="card kernel-card">
-          <span class="en">BOOT</span>
-          <h3>启动</h3>
-          <p class="desc">启动环节由团队自主设计，从引导到就绪的每一步都清晰可控。</p>
+      <p class="hero__kicker mono" data-i18n="hero.kicker">純自研內核 · LaswI Studio</p>
+      <p class="hero__tagline" data-i18n="hero.tagline">純自研內核 · 從零寫起的底層</p>
+
+      <!-- 終端視窗佔位：命令從 NEX 配置讀取 -->
+      <div class="term term--hero" aria-hidden="true">
+        <div class="term__bar">
+          <span class="term__dot"></span><span class="term__dot"></span><span class="term__dot"></span>
+          <span>build — nex</span>
         </div>
-        <div class="card kernel-card">
-          <span class="en">CORE</span>
-          <h3>调度与系统服务</h3>
-          <p class="desc">调度与系统服务等关键环节均为自研实现，为上层系统提供稳定底座。</p>
-        </div>
-        <div class="card kernel-card">
-          <span class="en">LONG-TERM</span>
-          <h3>自主可控 · 长期演进</h3>
-          <p class="desc">坚持自主可控与长期演进的原则，内核随团队节奏持续打磨。</p>
-        </div>
-      </div>
-
-      <div class="chips kernel-principles">
-        <span class="chip">自主设计</span>
-        <span class="chip">自主可控</span>
-        <span class="chip">长期演进</span>
-        <span class="chip">系统底层实践</span>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="section-head">
-        <span class="kicker">POWERED SYSTEM</span>
-        <h2>搭载 Nex Kernel 的系统</h2>
-        <p>Nex Kernel 目前作为 VayloOS 的底层内核投入使用。</p>
-      </div>
-
-      <div class="nex-grid">
-        <div class="card">
-          <span class="kicker">OVERVIEW</span>
-          <h3>VayloOS</h3>
-          <p class="desc">
-            以自研 Nex Kernel 内核为底层的操作系统，由团队自主设计启动、调度与系统服务等关键环节，
-            以自主可控和长期演进为原则，是团队在系统底层的完整实践。
-          </p>
-          <div class="vaylo-actions" style="margin-top:16px;">
-            <a class="btn-outline" href="https://laswi.com.cn/os.html" target="_blank" rel="noopener">查看详细介绍 →</a>
-          </div>
-        </div>
-        <div class="card dl-card">
-          <span class="kicker">DOWNLOAD</span>
-          <div class="dl-name">
-            <code>VayloOS</code>
-            <span class="dl-badge">ISO</span>
-          </div>
-          <dl class="dl-meta">
-            <dt>内核</dt><dd>Nex Kernel</dd>
-            <dt>形态</dt><dd>操作系统 ISO 镜像</dd>
-            <dt>下载页</dt><dd>vaylo.nex.laswi.com.cn</dd>
-          </dl>
-          <p class="dl-note">VayloOS 的 ISO 镜像已开放下载，欢迎前往体验搭载 Nex Kernel 的系统。</p>
-          <a class="btn btn-blue btn-lg" href="https://vaylo.nex.laswi.com.cn" target="_blank" rel="noopener">前往下载 VayloOS</a>
+        <div class="term__body">
+          <span class="term__prompt">$</span>
+          <span class="term__cmd" id="heroCmd">make nex</span>
+          <span class="cursor"></span>
         </div>
       </div>
-    </div>
-  </section>
 
-  <footer class="footer">
-    <div class="container footer-inner">
-      <span>© 2026 LaswI · 保留所有权利</span>
-      <span>
-        <a href="https://laswi.com.cn">官网首页</a> · <a href="https://laswi.com.cn/os.html">系统产品</a> · <a href="https://laswi.com.cn/about.html">关于我们</a> · <a href="https://vaylo.nex.laswi.com.cn">VayloOS</a> · <a href="https://rtstu.com" target="_blank" rel="noopener">热土工作室</a> · <a href="mailto:3199704668@qq.com">合作联系</a>
-      </span>
+      <div class="hero__cta">
+        <a class="btn btn--orange btn--lg ripple" id="heroSource" href="#" target="_blank" rel="noopener">
+          <span data-i18n="cta.source">獲取源碼</span>
+          <span class="material-symbols-rounded">arrow_outward</span>
+        </a>
+        <a class="btn btn--steel btn--lg ripple" id="heroDocs" href="#" target="_blank" rel="noopener">
+          <span data-i18n="cta.docs">閱讀文檔</span>
+        </a>
+      </div>
     </div>
-  </footer>
 
+    <!-- 八邊形內核核心（SVG mask 鏤空） -->
+    <div class="hero__art">
+      <div class="hero__glow" aria-hidden="true"></div>
+      <svg class="core-svg" id="heroCore" viewBox="0 0 400 400" role="img" aria-label="Nex Kernel core">
+        <defs>
+          <linearGradient id="nexGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#FF6D00"/>
+            <stop offset="52%" stop-color="#FF9A3C"/>
+            <stop offset="100%" stop-color="#82B1FF"/>
+          </linearGradient>
+          <radialGradient id="nexCoreGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FF6D00" stop-opacity=".34"/>
+            <stop offset="70%" stop-color="#FF6D00" stop-opacity="0"/>
+          </radialGradient>
+          <!-- 鏤空遮罩：白色=可见（外八边形），黑色=消除（内八边形） -->
+          <mask id="octRing">
+            <polygon fill="#fff" points="375.5,127.3 272.7,24.5 127.3,24.5 24.5,127.3 24.5,272.7 127.3,375.5 272.7,375.5 375.5,272.7"/>
+            <polygon fill="#000" points="303.4,156.8 242.9,92.4 157.1,92.4 97.0,156.8 97.0,242.9 157.1,303.4 242.9,303.4 303.4,242.9"/>
+          </mask>
+          <!-- 引腳圓點沿八邊形邊緣等距排列（JS 注入） -->
+        </defs>
+
+        <circle cx="200" cy="200" r="196" fill="url(#nexCoreGlow)"/>
+        <g id="heroPins"></g>
+
+        <!-- 鏤空環：漸變從鏤空處透出 -->
+        <rect class="core-fill" x="0" y="0" width="400" height="400" fill="url(#nexGrad)" mask="url(#octRing)"/>
+
+        <!-- 內八邊形芯體 -->
+        <polygon points="303.4,156.8 242.9,92.4 157.1,92.4 97.0,156.8 97.0,242.9 157.1,303.4 242.9,303.4 303.4,242.9"
+                 fill="#0E1116" opacity=".92"/>
+        <polygon points="303.4,156.8 242.9,92.4 157.1,92.4 97.0,156.8 97.0,242.9 157.1,303.4 242.9,303.4 303.4,242.9"
+                 fill="none" stroke="rgba(230,236,245,.18)" stroke-width="1"/>
+
+        <text class="core-label" x="200" y="196" text-anchor="middle" fill="#E6ECF5">NEX</text>
+        <text class="core-sub" x="200" y="228" text-anchor="middle">KERNEL CORE</text>
+        <text class="core-sub" x="200" y="246" text-anchor="middle" style="font-size:9px;letter-spacing:.2em">NON-LINUX · SELF-BUILT</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="hero__scroll" aria-hidden="true"><i></i><span>SCROLL</span></div>
+  <div class="hero__corner">Nex Kernel · v0.1.0</div>
+</section>
+
+<!-- ============================================================
+     ③ 什麼是 Nex Kernel（定位宣言，淺色）
+     ============================================================ -->
+<section class="sec sec--light" id="what">
+  <div class="sec__inner">
+    <div class="what__grid reveal">
+      <div class="what__left">
+        <span class="giant">WHAT</span>
+        <span class="giant" style="font-size:clamp(26px,3.4vw,54px);margin-top:10px">IS NEX</span>
+        <p class="tiny" data-i18n="what.tiny">不是發行版，是內核本體</p>
+      </div>
+      <div class="what__right">
+        <div class="what__lead" id="declList"><!-- JS 渲染三段宣言 --></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ④ 內核模塊（深色，放射圖）
+     ============================================================ -->
+<section class="sec sec--dark" id="modules">
+  <div class="sec__inner">
+    <div class="sec-head reveal">
+      <span class="sec-head__bracket">[</span>
+      <span class="giant giant--sec">MODULES</span>
+      <span class="sec-head__bracket">]</span>
+      <span class="sec-head__sub" data-i18n="modules.cn">內核模塊</span>
+    </div>
+
+    <p class="mod-hint reveal" style="margin-bottom:18px" data-i18n="modules.hint">懸停模塊查看職責 · 核心為八邊形內核本體</p>
+
+    <div class="radial reveal" id="radial">
+      <svg class="radial__links" id="radialLinks" viewBox="0 0 1000 780" preserveAspectRatio="none" aria-hidden="true"></svg>
+      <div class="corenode" id="coreNode">
+        <span class="corenode__ring"></span>
+        <span class="corenode__inner"></span>
+        <span class="corenode__label"><b>NEX</b><span>KERNEL</span></span>
+      </div>
+      <!-- 模塊卡片由 JS 依 NEX.coreModules 渲染 -->
+    </div>
+
+    <div class="mod-detail" id="modDetail" aria-live="polite"><!-- JS 渲染詳情 --></div>
+  </div>
+</section>
+<!-- ============================================================
+     ⑤ 核心特性（Live Tile）
+     ============================================================ -->
+<section class="sec sec--dark alt" id="features">
+  <div class="sec__inner">
+    <div class="sec-head reveal">
+      <span class="sec-head__bracket">[</span>
+      <span class="giant giant--sec">FEATURES</span>
+      <span class="sec-head__bracket">]</span>
+      <span class="sec-head__sub" data-i18n="features.cn">核心特性</span>
+    </div>
+    <p class="mod-hint reveal" style="margin-bottom:22px" data-i18n="features.hint">磁貼每 4–6 秒自動翻面 · 懸停暫停</p>
+    <div class="tiles reveal" id="tileGrid"><!-- JS 依 NEX.features 渲染 --></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ⑥ 架構支持與移植（淺色）
+     ============================================================ -->
+<section class="sec sec--light" id="ports">
+  <div class="sec__inner">
+    <div class="sec-head reveal">
+      <span class="sec-head__bracket" style="color:#2A5BC0">[</span>
+      <span class="giant giant--sec">PORTS</span>
+      <span class="sec-head__bracket" style="color:#2A5BC0">]</span>
+      <span class="sec-head__sub" data-i18n="ports.cn">架構與移植</span>
+    </div>
+
+    <div class="arch-grid reveal" id="archGrid"><!-- JS 依 NEX.architectures 渲染 --></div>
+
+    <div class="sec-head reveal" style="margin-top:12px">
+      <span class="sec-head__bracket" style="color:#2A5BC0;font-size:clamp(24px,3vw,46px)">[</span>
+      <span class="giant" style="font-size:clamp(22px,2.8vw,40px)">PORTING</span>
+      <span class="sec-head__bracket" style="color:#2A5BC0;font-size:clamp(24px,3vw,46px)">]</span>
+      <span class="sec-head__sub" data-i18n="ports.stepsCn">移植步驟</span>
+    </div>
+
+    <div class="steps reveal" id="stepGrid"><!-- JS 依 NEX.portingSteps 渲染 --></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ⑦ 構建與使用（深色終端）
+     ============================================================ -->
+<section class="sec sec--dark" id="build">
+  <div class="sec__inner">
+    <div class="sec-head reveal">
+      <span class="sec-head__bracket">[</span>
+      <span class="giant giant--sec">BUILD</span>
+      <span class="sec-head__bracket">]</span>
+      <span class="sec-head__sub" data-i18n="build.cn">構建</span>
+    </div>
+
+    <div class="build reveal">
+      <div class="term term--build" id="buildTerm">
+        <div class="term__bar">
+          <span class="term__dot"></span><span class="term__dot"></span><span class="term__dot"></span>
+          <span id="termTitle">nex — build</span>
+        </div>
+        <div class="term__body" id="termBody"><!-- JS 逐行渲染 NEX.buildDemo.commands --></div>
+      </div>
+
+      <div class="build__side">
+        <div class="build__arrow ripple" role="img" aria-label="arrow">
+          <span class="material-symbols-rounded">arrow_forward</span>
+        </div>
+        <div class="build__steps">
+          <div class="build__step"><b>01</b><span data-i18n="build.s1">克隆源碼</span></div>
+          <div class="build__step"><b>02</b><span data-i18n="build.s2">選擇目標架構</span></div>
+          <div class="build__step"><b>03</b><span data-i18n="build.s3">執行構建</span></div>
+        </div>
+        <div class="build__pills">
+          <span class="pill pill--steel" id="buildOut">nex.elf</span>
+          <span class="pill pill--orange" id="buildArch">x86_64</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ⑧ 版本與許可證（淺色）
+     ============================================================ -->
+<section class="sec sec--light" id="version">
+  <div class="sec__inner">
+    <div class="sec-head reveal">
+      <span class="sec-head__bracket" style="color:#B58900">[</span>
+      <span class="giant giant--sec">VERSION</span>
+      <span class="sec-head__bracket" style="color:#B58900">]</span>
+      <span class="sec-head__sub" data-i18n="version.cn">版本與許可證</span>
+    </div>
+
+    <div class="rel reveal">
+      <div class="rel__version">
+        <span class="giant" id="bigVersion">v0.1.0</span>
+        <div class="rel__meta">
+          <span id="relDate">2026-01-01</span>
+          <span class="rel__license">
+            <span class="material-symbols-rounded">warning</span>
+            <span id="relLicense">許可證</span>
+            <span class="rel__tip" id="licenseTip">使用前請閱讀許可證條款</span>
+          </span>
+        </div>
+      </div>
+      <div class="rel__log">
+        <p class="log__head" data-i18n="version.log">CHANGELOG</p>
+        <ul class="log__list" id="logList"><!-- JS 依 NEX.changelog 渲染 --></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ⑨ 獲取源碼（深色強調）
+     ============================================================ -->
+<section class="sec sec--source" id="source">
+  <div class="sec__inner">
+    <div class="sec-head reveal" style="justify-content:center;text-align:center">
+      <span class="sec-head__bracket">[</span>
+      <span class="giant giant--sec">GET SOURCE</span>
+      <span class="sec-head__bracket">]</span>
+    </div>
+    <p class="reveal" style="text-align:center;color:var(--on-dark-mute);margin-top:-24px;margin-bottom:clamp(28px,4vw,48px)" data-i18n="source.cn">獲取源碼</p>
+
+    <div class="srccard reveal">
+      <div class="srcicon" aria-hidden="true"><i></i></div>
+      <div class="srccard__info">
+        <p class="srccard__name" id="srcName">Nex Kernel</p>
+        <p class="srccard__meta">
+          <span>VER <b id="srcVer">v0.1.0</b></span>
+          <span>LICENSE <b id="srcLicense">許可證</b></span>
+          <span>ARCH <b id="srcArch">x86_64</b></span>
+        </p>
+      </div>
+      <div class="srccard__actions">
+        <a class="btn btn--orange ripple" id="srcBtn" href="#" target="_blank" rel="noopener">
+          <span data-i18n="cta.source">獲取源碼</span>
+          <span class="material-symbols-rounded">arrow_outward</span>
+        </a>
+        <a class="btn btn--steel ripple" id="srcDocs" href="#" target="_blank" rel="noopener">
+          <span data-i18n="cta.docs">閱讀文檔</span>
+        </a>
+      </div>
+    </div>
+
+    <p class="srcsite" id="srcSite">nex.laswi.com.cn</p>
+    <p class="srcwarn" data-i18n="source.warn">內核開發有風險，請在虛擬機或備用設備上測試。</p>
+  </div>
+</section>
+
+<!-- ============================================================
+     設計說明（靜態中文，不隨語言切換）
+     ============================================================ -->
+<section class="sec sec--light" id="design-notes">
+  <div class="sec__inner">
+    <div class="sec-head reveal">
+      <span class="sec-head__bracket" style="color:#2A5BC0">[</span>
+      <span class="giant giant--sec">DESIGN</span>
+      <span class="sec-head__bracket" style="color:#2A5BC0">]</span>
+      <span class="sec-head__sub">設計說明</span>
+    </div>
+
+    <div class="notes reveal">
+      <details class="note-item" open>
+        <summary><span class="num">01</span>八邊形內核核心鏤空如何實現？引腳圓點如何表達「對外 API」？
+          <span class="material-symbols-rounded">expand_more</span></summary>
+        <div class="note-body">
+          <p><b>鏤空做法</b>：首屏核心用 <code>&lt;svg&gt;</code> 內的 <code>&lt;mask&gt;</code> 實現。遮罩裡放兩個 <code>&lt;polygon&gt;</code>——外八邊形填白（白＝可見）、內八邊形填黑（黑＝消除），再把 <code>&lt;rect fill="url(#nexGrad)" mask="url(#octRing)"&gt;</code> 鋪在這個遮罩上，於是「橙→鋼藍」漸變只從八邊形環帶裡透出來，中心完全透明，可以露出底層深色背景與芯體。<b>為什麼不用 clip-path</b>：<code>clip-path</code> 只能「裁掉外面」，無法在形狀中間挖洞；要「環形中空」必須用 mask 的雙路徑叠加，或用 <code>clip-path: path()</code> 寫 even-odd 複合路徑，維護成本更高，故選 mask。</p>
+          <p><b>內外八邊形頂點</b>：以 400×400 視口、中心 (200,200) 計算，外圈半徑 190、內圈 112，八個頂點由 <code>r·cos(22.5°+45°k), r·sin(22.5°+45°k)</code> 得出，所以八邊形是「方角朝上下左右」的硬朗朝向，而不是尖角朝上——比圓環更有工程感。</p>
+          <p><b>引腳圓點＝API</b>：沿外八邊形邊緣等距排 24 個 <code>&lt;circle&gt;</code>（JS 生成，避免手寫坐標），半徑 2.2px，帶 <code>pulse</code> 呼吸動畫並錯開 delay，形成「沿邊緣向外輸出的信號」。語義上：邊是內核邊界，圓點是邊界上的一個個導出接口／中斷向量，越密代表接口越多；內核模塊板塊的連接線端點也用同樣的小圓點，形成「API 從核心通向子系統」的統一符號。模塊放射圖的中心節點同樣是八邊形鏤空（用 CSS <code>clip-path</code> 多邊形做外環 + 內芯兩層），與首屏保持同一幾何母題。</p>
+        </div>
+      </details>
+
+      <details class="note-item">
+        <summary><span class="num">02</span>如何與 VayloOS 在共享系列語言下做出明確區隔？
+          <span class="material-symbols-rounded">expand_more</span></summary>
+        <div class="note-body">
+          <p><b>幾何母題不同</b>：VayloOS 用「同心圓環」表達系統的分層與環繞感，本頁改用「八邊形 + 方括號 + 引腳」——八邊形有直角與切角，天生比圓更硬、更像芯片封裝；<code>[ ]</code> 方括號反覆出現在每個板塊標題兩側，是把「代碼容器」具象化；引腳圓點只在本頁出現，是內核獨有的「邊界接口」符號。</p>
+          <p><b>色板不同</b>：VayloOS 是深靛藍 + 青綠 + 紫，偏「系統 UI 的科技感」；Nex Kernel 用石墨黑 #121417 + 深灰藍 #1C2230 作底，輔色換成亮橙 #FF6D00（內核本體與行動）與鋼藍 #82B1FF（終端與代碼），琥珀 #FFC400 只做許可證警示。橙＋鋼藍是一組「爐火 + 冷鋼」的原始工程配色，天然區別於青綠紫。</p>
+          <p><b>比例不同</b>：全頁深色 60% / 淺色 25% / 彩色點綴 15%，彩色只出現在需要被點擊或被強調的地方（源碼按鈕、重點詞色塊、狀態膠囊），不做大面積彩色底，維持「原礦」氣質。</p>
+          <p><b>字形策略相同但用法分層</b>：兩站都用 Space Grotesk 巨型鏤空字 + JetBrains Mono 小字，但本頁把 Mono 當「主字體」用——模塊說明、架構名、命令、日誌、版號全部 Mono，讓整頁讀起來像一份工程文檔。</p>
+        </div>
+      </details>
+
+      <details class="note-item">
+        <summary><span class="num">03</span>模塊放射圖的懸停聚焦如何實現？移動端如何優雅降級？
+          <span class="material-symbols-rounded">expand_more</span></summary>
+        <div class="note-body">
+          <p><b>三層聯動</b>：① 卡片：滑鼠進入某卡片時，給 <code>.radial</code> 加 <code>.is-focused</code>、給該卡片加 <code>.is-active</code>；卡片自身 <code>translate(-50%,-50%) scale(1.07)</code> 並加深陰影；② 其他模塊：<code>.radial.is-focused .mod-card:not(.is-active){opacity:.42;filter:saturate(.6)}</code>，用「壓暗而非隱藏」保持版面完整；③ 連接線與核心：<code>.link-group.is-hot</code> 把該條流動線由鋼藍換成橙色、加粗、動畫提速，同時中心八邊形觸發 <code>corePulse</code>（一次性 900ms 脈衝，不是常駐抖動，避免視覺疲勞）。詳情卡內容由 JS 寫入後先加 <code>.is-swap</code>（透明度歸零），下一幀再移除，形成淡入。</p>
+          <p><b>連接線怎麼畫</b>：用一個絕對定位覆蓋全圖的 <code>&lt;svg&gt;</code>，坐標在 JS 裡按每個模塊的百分比位置算出，畫「L 形折線 + 端點小圓點」：<code>stroke-dasharray</code> 製造短促光點，<code>stroke-dashoffset</code> 循環位移模擬數據流動；全部用 CSS animation，不逐幀計算，遵守效能要求。</p>
+          <p><b>移動端降級</b>：≤900px 時隱藏整張連線 SVG，改為「中心八邊形在上 + 卡片縱向堆疊」，左側用一條 2px 漸變豎線（<code>::before</code>）代替連接線，每張卡片左側再掛一個小圓點（同樣是引腳符號）；卡片由絕對定位改為 <code>position:relative</code> 流式排列，懸停縮放改為輕微右移 <code>translateX(6px)</code>，避免小屏上放大導致裁切；「其他模塊變暗」在移動端降為 0.78 透明度，因為小屏一次只看到一兩張卡，過度壓暗會讓清單失去可讀性。</p>
+        </div>
+      </details>
+
+      <details class="note-item">
+        <summary><span class="num">04</span>「不基於 Linux」如何在文案與視覺上反覆強調而不重複？
+          <span class="material-symbols-rounded">expand_more</span></summary>
+        <div class="note-body">
+          <p><b>換層次講，而不是換句話講</b>：定位區講「事實」——不是 Linux 的分支，從引導到調度全部自寫；特性磁貼講「結果」——「不基於 Linux」作為單獨一張加大磁貼，正面只寫這四個字，背面寫它帶來的工程後果（沒有遺留包袱、可裁剪到底）；架構區講「可驗證」——移植步驟從「取得交叉編譯器」開始，隱含內核是自成一體的代碼庫，不是某個宏內核的下游。</p>
+          <p><b>視覺上只出現一次「大字」</b>：整頁只有特性區那張橙色大磁貼用超大字寫「不基於 Linux」，其餘位置改用符號暗示——首屏核心內部的 Mono 小字 <code>NON-LINUX · SELF-BUILT</code>、模塊說明裡的「自建中斷向量表」、構建終端裡的交叉編譯命令。文字重複會被當成口號，符號重複會被當成設計語言。</p>
+          <p><b>句式上避免否定疲勞</b>：全頁「不基於」只出現在首屏 tagline、定位第一段、以及那張磁貼正面共三處；其他位置一律用肯定句式描述（「從零實現」「自研調度器」「自建驅動框架」），讓「從零」成為主角，「不基於」只是它的推論。</p>
+        </div>
+      </details>
+
+      <details class="note-item">
+        <summary><span class="num">05</span>日後擴展為多架構鏡像下載與 API 文檔站，配置對象如何預留？
+          <span class="material-symbols-rounded">expand_more</span></summary>
+        <div class="note-body">
+          <p><b>現有結構已分層</b>：<code>NEX</code> 只放「身份 + 入口 + 內容」，<code>NEX.architectures[]</code> 每項是 <code>{name, status, note}</code>，天然可加字段而不破壞渲染——渲染函數只讀它需要的鍵，多餘鍵被忽略。</p>
+          <p><b>建議的擴展鍵</b>（本次已預留註釋位置，可直接啟用）：</p>
+          <ul>
+            <li><code>architectures[].downloads: [{label, url, size, sha256, format}]</code>——架構卡片下方自動多出一排鏡像膠囊；<code>status</code> 支持 <code>supported / experimental / planned</code>，顏色映射表已在 JS 的 <code>ARCH_STATUS</code> 常量裡，加新狀態只需加一條映射。</li>
+            <li><code>docsUrl</code> 升級為 <code>docs: {home, api, portingGuide, changelog}</code>，導航與源碼卡的「閱讀文檔」讀 <code>docs.home</code>，板塊內可加「API 文檔」次級入口。</li>
+            <li><code>buildDemo</code> 從單一對象改為 <code>buildDemo.targets[]</code>（每項含 <code>arch / commands / output</code>），終端演示變為可切換 tab，渲染函數只改「取哪個 target」。</li>
+            <li><code>i18n</code> 字典的鍵已按「板塊.語義」命名（<code>build.s1</code>、<code>modules.hint</code>），新增板塊只需在三個語言對象裡補同名鍵，缺鍵時自動回退到 <code>zh-TW</code>，不會出現空白。</li>
+            <li>若要做下載計數／API 檢索，只新增一個 <code>NEX.endpoints = {apiBase, searchUrl}</code> 即可，所有出入口集中在配置對象，不需要改頁面結構。</li>
+          </ul>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- ============================================================
+     ⑩ 頁腳
+     ============================================================ -->
+<footer class="foot">
+  <div class="foot__inner">
+    <div class="foot__title giant">LET'S TALK</div>
+    <div class="foot__mails" id="footMails"><!-- JS 依 NEX.emails 渲染 --></div>
+    <p class="foot__sub" data-i18n="foot.sub">移植適配、硬件兼容反饋或合作，歡迎郵件聯繫。</p>
+    <div class="foot__bottom">
+      <span id="footCopy">© LaswI Studio / Nex Kernel · v0.1.0</span>
+      <span><a href="#top" data-i18n="foot.top">回到頂部</a> · <a id="footSite" href="#">nex.laswi.com.cn</a></span>
+    </div>
+  </div>
+</footer>
+<script>
+/* ============================================================
+   可變數據集中配置 —— 全頁所有可變內容均由此對象讀取
+   ★ 需要替換正式資料時，只改這裡即可，無需動 HTML / CSS
+   ============================================================ */
+const NEX = {
+  name: "Nex Kernel",
+  brand: "LaswI Studio",
+
+  /* ★ 版本與發佈 */
+  version: "v0.1.0",                          // ← 請替換為正式版本號
+  releaseDate: "2026-01-01",                  // ← 請替換為正式發佈日期
+
+  /* ★ 入口連結 */
+  sourceUrl: "https://nex.laswi.com.cn",      // ← 源碼倉庫 / 官網入口
+  sourceLabel: "獲取源碼",
+  docsUrl: "#",                               // ← 文檔連結，沒有就留 "#"
+  docsLabel: "閱讀文檔",
+  siteUrl: "nex.laswi.com.cn",
+
+  license: "佔位許可證名稱",                    // ← 請替換為實際許可證（如 Apache-2.0 / GPL-3.0 / MIT）
+
+  emails: ["3199704668@qq.com", "1828236908@qq.com"],
+
+  tagline: "純自研內核 · 從零寫起的底層",
+
+  /* ★ 定位宣言三段：keyword 為被橙色塊高亮的重點詞（三語各一份見 I18N.positioning） */
+  positioning: [
+    { id: "p1", keyword: "不基於 Linux" },
+    { id: "p2", keyword: "模塊化" },
+    { id: "p3", keyword: "以源碼開放" }
+  ],
+
+  /* ★ 內核子模塊（文字三語見 I18N.modules[id]） */
+  coreModules: [
+    { id: "mem",    icon: "memory",       tone: "steel"  },
+    { id: "sched",  icon: "account_tree", tone: "orange" },
+    { id: "irq",    icon: "bolt",         tone: "slate"  },
+    { id: "vfs",    icon: "folder_open",  tone: "steel"  },
+    { id: "driver", icon: "extension",    tone: "orange" },
+    { id: "syscall",icon: "terminal",     tone: "slate"  },
+    { id: "smp",    icon: "hub",          tone: "steel"  },
+    { id: "timer",  icon: "timer",        tone: "orange" }
+  ],
+
+  /* ★ 核心特性（文字三語見 I18N.features[i]，順序一致） */
+  features: [
+    { icon: "architecture", tone: "orange", size: "big"  },  // 純自研（加大錨點）
+    { icon: "block",        tone: "orange", size: "wide" },  // 不基於 Linux（加大錨點）
+    { icon: "layers",       tone: "graphite" },
+    { icon: "bolt",         tone: "steel" },
+    { icon: "shield",       tone: "slate" },
+    { icon: "extension",    tone: "graphite" },
+    { icon: "hub",          tone: "slate" },
+    { icon: "compress",     tone: "steel" }
+  ],
+
+  /* ★ 架構支持（status: supported / experimental / planned） */
+  architectures: [
+    { name: "x86_64", status: "planned" },
+    { name: "ARM64",  status: "planned" },
+    { name: "RISC-V", status: "planned" }
+  ],
+
+  /* ★ 移植步驟（文字三語見 I18N.portingSteps[i]，順序一致） */
+  portingSteps: [ { id: "s1" }, { id: "s2" }, { id: "s3" }, { id: "s4" } ],
+
+  /* ★ 構建演示：commands 以 "$ " 開頭視為命令，其餘視為輸出 */
+  buildDemo: {
+    commands: [
+      "$ git clone " + "https://nex.laswi.com.cn/nex-kernel.git",
+      "$ cd nex-kernel",
+      "$ export NEX_ARCH=x86_64",
+      "$ make nex ARCH=x86_64",
+      "  [  12%] arch/x86_64/entry.S",
+      "  [  48%] kernel/sched/core.c",
+      "  [  76%] kernel/mm/pmm.c",
+      "  [ 100%] link nex.elf",
+      "  built ok · nex.elf"
+    ],
+    output: "nex.elf · 佔位大小",
+    arch: "x86_64"
+  },
+
+  /* ★ 更新日誌（首條會被導航角標與版本區同時引用） */
+  changelog: [
+    "v0.1.0 — 佔位更新說明：內核骨架與文檔站首版上線",
+    "v0.0.9 — 佔位更新說明：內存管理模塊重構",
+    "v0.0.7 — 佔位更新說明：新增 ARM64 移植分支",
+    "v0.0.4 — 佔位更新說明：中斷框架與驅動加載器"
+  ]
+};
+
+/* ============================================================
+   多語言字典（簡體 / 繁體 / English）
+   —— 產品名、版本號、網址、架構名、許可證名不譯
+   ============================================================ */
+const I18N = {
+  "zh-CN": {
+    nav: { home:"首页", what:"定位", modules:"内核模块", features:"特性", ports:"架构与移植", build:"构建", version:"版本",
+           docsLabel:"阅读文档", sourceLabel:"获取源码", changelog:"更新日志" },
+    hero: {
+      kicker: "纯自研内核 · LaswI Studio",
+      tagline: "从引导到调度全部自写，不基于 Linux 的通用操作系统内核。"
+    },
+    cta: { source:"获取源码", docs:"阅读文档" },
+    what: { tiny:"不是发行版，是内核本体" },
+    positioning: [
+      { line: "不基于 Linux，从引导到调度", kw:"不基于 Linux", tail:"全部自写。" },
+      { line: "模块化设计，", kw:"模块化", tail:"可裁剪、可移植。" },
+      { line: "以源码开放", kw:"源码", tail:"，可作为上层系统的内核底座。" }
+    ],
+    positioning_notes: [
+      "BOOT · MM · SCHED · IRQ — 自建实现，无下游依赖",
+      "按需启用子系统，镜像体量随配置变化",
+      "源码与文档同步公开，欢迎移植与反馈"
+    ],
+    modules: { cn:"内核模块", hint:"悬停模块查看职责 · 中心为八边形内核本体" },
+    modules_text: {
+      mem:     { name:"内存管理", desc:"物理页 / 虚拟地址空间", points:["物理页分配与回收策略自建","虚拟地址空间按进程隔离","按需换页与内存映射接口"] },
+      sched:   { name:"进程调度", desc:"抢占式 · 多优先级", points:["抢占式时间片调度器","优先级与实时队列分离","上下文切换路径精简"] },
+      irq:     { name:"中断处理", desc:"向量表 / 上下半部", points:["自建中断向量表与分发表","上下半部分离处理","支持嵌套与优先级屏蔽"] },
+      vfs:     { name:"虚拟文件系统", desc:"统一挂载与访问层", points:["统一挂载点与路径解析","文件系统驱动以接口形式接入","提供同步与异步读写的系统调用"] },
+      driver:  { name:"驱动框架", desc:"模块化加载 / 卸载", points:["驱动以模块形式热加载","统一设备模型与总线抽象","错误隔离，单驱动故障不扩散"] },
+      syscall: { name:"系统调用", desc:"用户态与内核态边界", points:["系统调用号表集中定义","参数校验与权限检查","兼容层可按架构适配"] },
+      smp:     { name:"SMP 多核", desc:"核间同步与启动", points:["多核启动与从核唤醒","自旋锁与核间中断","调度域按核拓扑划分"] },
+      timer:   { name:"计时器", desc:"时钟源 / 定时任务", points:["可替换时钟源抽象","高精度定时任务队列","为调度提供时间片依据"] }
+    },
+    features: { cn:"核心特性", hint:"磁贴每 4–6 秒自动翻面 · 悬停暂停" },
+    features_text: [
+      { title:"纯自研", desc:"每一行内核代码都由本工作室编写，不套用现成内核。" },
+      { title:"不基于 Linux", desc:"不是某个宏内核的分支或裁剪，没有上游遗留的架构包袱。" },
+      { title:"微内核架构", desc:"核心只保留必要机制，服务以模块形式运行于边界之外。" },
+      { title:"抢占式调度", desc:"高优先级任务可打断低优先级任务，响应路径短。" },
+      { title:"内存保护", desc:"地址空间隔离与权限校验，越界访问在内核层被拦截。" },
+      { title:"模块化驱动", desc:"驱动与内核解耦，按硬件配置增删，不重编整个内核。" },
+      { title:"SMP 多核", desc:"面向多核拓扑设计，核间同步与调度域可配置。" },
+      { title:"可裁剪", desc:"子系统按需启用，镜像体量随目标设备收缩。" }
+    ],
+    ports: { cn:"架构与移植", stepsCn:"移植步骤" },
+    arch_status: { supported:"已支持", experimental:"实验性", planned:"规划中" },
+    arch_notes: [
+      "主流服务器与桌面平台，作为首个参考架构。",
+      "面向移动与嵌入式设备，移植工作分阶段推进。",
+      "开放指令集，适合做最小化裁剪验证。"
+    ],
+    portingSteps: [
+      { title:"准备工具链", desc:"为目标架构取得交叉编译器，确认 ABI 与调用约定。" },
+      { title:"接入架构层", desc:"实现启动入口、页表结构与上下文切换等架构相关代码。" },
+      { title:"对接驱动", desc:"按设备模型接入串口、定时器等最小外设集，跑通输出。" },
+      { title:"启动自检", desc:"在虚拟机或开发板上完成引导与内核自检，记录移植要点。" }
+    ],
+    build: { cn:"构建", s1:"克隆源码", s2:"选择目标架构", s3:"执行构建" },
+    version: { cn:"版本与许可证", log:"CHANGELOG" },
+    license_tip: "使用前请阅读许可证条款",
+    source: { cn:"获取源码", warn:"内核开发有风险，请在虚拟机或备用设备上测试。" },
+    foot: { sub:"移植适配、硬件兼容反馈或合作，欢迎邮件联系。", top:"回到顶部" }
+  },
+
+  "zh-TW": {
+    nav: { home:"首頁", what:"定位", modules:"內核模塊", features:"特性", ports:"架構與移植", build:"構建", version:"版本",
+           docsLabel:"閱讀文檔", sourceLabel:"獲取源碼", changelog:"更新日誌" },
+    hero: {
+      kicker: "純自研內核 · LaswI Studio",
+      tagline: "從引導到調度全部自寫，不基於 Linux 的通用操作系統內核。"
+    },
+    cta: { source:"獲取源碼", docs:"閱讀文檔" },
+    what: { tiny:"不是發行版，是內核本體" },
+    positioning: [
+      { line:"不基於 Linux，從引導到調度", kw:"不基於 Linux", tail:"全部自寫。" },
+      { line:"模塊化設計，", kw:"模塊化", tail:"可裁剪、可移植。" },
+      { line:"以源碼開放", kw:"源碼", tail:"，可作為上層系統的內核底座。" }
+    ],
+    positioning_notes: [
+      "BOOT · MM · SCHED · IRQ — 自建實現，無下游依賴",
+      "按需啟用子系統，鏡像體量隨配置變化",
+      "源碼與文檔同步公開，歡迎移植與反饋"
+    ],
+    modules: { cn:"內核模塊", hint:"懸停模塊查看職責 · 中心為八邊形內核本體" },
+    modules_text: {
+      mem:     { name:"內存管理", desc:"物理頁 / 虛擬地址空間", points:["物理頁分配與回收策略自建","虛擬地址空間按進程隔離","按需換頁與內存映射接口"] },
+      sched:   { name:"進程調度", desc:"搶佔式 · 多優先級", points:["搶佔式時間片調度器","優先級與實時隊列分離","上下文切換路徑精簡"] },
+      irq:     { name:"中斷處理", desc:"向量表 / 上下半部", points:["自建中斷向量表與分發表","上下半部分離處理","支持嵌套與優先級屏蔽"] },
+      vfs:     { name:"虛擬文件系統", desc:"統一掛載與訪問層", points:["統一掛載點與路徑解析","文件系統驅動以接口形式接入","提供同步與異步讀寫的系統調用"] },
+      driver:  { name:"驅動框架", desc:"模塊化加載 / 卸載", points:["驅動以模塊形式熱加載","統一設備模型與總線抽象","錯誤隔離，單驅動故障不擴散"] },
+      syscall: { name:"系統調用", desc:"用戶態與內核態邊界", points:["系統調用號表集中定義","參數校驗與權限檢查","兼容層可按架構適配"] },
+      smp:     { name:"SMP 多核", desc:"核間同步與啟動", points:["多核啟動與從核喚醒","自旋鎖與核間中斷","調度域按核拓撲劃分"] },
+      timer:   { name:"計時器", desc:"時鐘源 / 定時任務", points:["可替換時鐘源抽象","高精度定時任務隊列","為調度提供時間片依據"] }
+    },
+    features: { cn:"核心特性", hint:"磁貼每 4–6 秒自動翻面 · 懸停暫停" },
+    features_text: [
+      { title:"純自研", desc:"每一行內核代碼都由本工作室編寫，不套用現成內核。" },
+      { title:"不基於 Linux", desc:"不是某個宏內核的分支或裁剪，沒有上游遺留的架構包袱。" },
+      { title:"微內核架構", desc:"核心只保留必要機制，服務以模塊形式運行於邊界之外。" },
+      { title:"搶佔式調度", desc:"高優先級任務可打斷低優先級任務，響應路徑短。" },
+      { title:"內存保護", desc:"地址空間隔離與權限校驗，越界訪問在內核層被攔截。" },
+      { title:"模塊化驅動", desc:"驅動與內核解耦，按硬件配置增刪，不重編整個內核。" },
+      { title:"SMP 多核", desc:"面向多核拓撲設計，核間同步與調度域可配置。" },
+      { title:"可裁剪", desc:"子系統按需啟用，鏡像體量隨目標設備收縮。" }
+    ],
+    ports: { cn:"架構與移植", stepsCn:"移植步驟" },
+    arch_status: { supported:"已支持", experimental:"實驗性", planned:"規劃中" },
+    arch_notes: [
+      "主流伺服器與桌面平台，作為首個參考架構。",
+      "面向移動與嵌入式設備，移植工作分階段推進。",
+      "開放指令集，適合做最小化裁剪驗證。"
+    ],
+    portingSteps: [
+      { title:"準備工具鏈", desc:"為目標架構取得交叉編譯器，確認 ABI 與調用約定。" },
+      { title:"接入架構層", desc:"實現啟動入口、頁表結構與上下文切換等架構相關代碼。" },
+      { title:"對接驅動", desc:"按設備模型接入串口、計時器等最小外設集，跑通輸出。" },
+      { title:"啟動自檢", desc:"在虛擬機或開發板上完成引導與內核自檢，記錄移植要點。" }
+    ],
+    build: { cn:"構建", s1:"克隆源碼", s2:"選擇目標架構", s3:"執行構建" },
+    version: { cn:"版本與許可證", log:"CHANGELOG" },
+    license_tip: "使用前請閱讀許可證條款",
+    source: { cn:"獲取源碼", warn:"內核開發有風險，請在虛擬機或備用設備上測試。" },
+    foot: { sub:"移植適配、硬件兼容反饋或合作，歡迎郵件聯繫。", top:"回到頂部" }
+  },
+
+  "en": {
+    nav: { home:"Home", what:"Positioning", modules:"Modules", features:"Features", ports:"Ports", build:"Build", version:"Version",
+           docsLabel:"Read Docs", sourceLabel:"Get Source", changelog:"Changelog" },
+    hero: {
+      kicker: "Self-built kernel · LaswI Studio",
+      tagline: "A general-purpose OS kernel written from scratch — not based on Linux."
+    },
+    cta: { source:"Get Source", docs:"Read Docs" },
+    what: { tiny:"Not a distro — the kernel itself" },
+    positioning: [
+      { line:"Not based on Linux — from boot to scheduler,", kw:"Not based on Linux", tail:" everything is written in-house." },
+      { line:"A modular design:", kw:"modular", tail:" trimmable and portable." },
+      { line:"Released as open source", kw:"open source", tail:" — ready to serve as the kernel base of upper-layer systems." }
+    ],
+    positioning_notes: [
+      "BOOT · MM · SCHED · IRQ — in-house, no downstream dependency",
+      "Enable subsystems as needed; image size follows your config",
+      "Source and docs released together — ports and feedback welcome"
+    ],
+    modules: { cn:"Kernel Modules", hint:"Hover a module to inspect its duty · octagon = kernel core" },
+    modules_text: {
+      mem:     { name:"Memory", desc:"physical pages / address space", points:["In-house physical page allocator and reclaim","Per-process virtual address space isolation","Demand paging and memory mapping API"] },
+      sched:   { name:"Scheduler", desc:"preemptive · multi-priority", points:["Preemptive time-slice scheduler","Separate priority and realtime queues","Compact context-switch path"] },
+      irq:     { name:"Interrupts", desc:"vector table / top & bottom half", points:["In-house interrupt vector and dispatch table","Split top-half and bottom-half handling","Nesting and priority masking supported"] },
+      vfs:     { name:"VFS", desc:"unified mount and access layer", points:["Unified mount points and path resolution","Filesystem drivers plug in as interfaces","Sync and async read/write syscalls"] },
+      driver:  { name:"Driver Framework", desc:"modular load / unload", points:["Drivers hot-load as modules","Unified device model and bus abstraction","Fault isolation per driver"] },
+      syscall: { name:"Syscalls", desc:"user / kernel boundary", points:["Central syscall number table","Argument validation and permission checks","Per-arch compatibility layer"] },
+      smp:     { name:"SMP", desc:"cross-core sync and bring-up", points:["Multi-core boot and AP wake-up","Spinlocks and inter-processor interrupts","Scheduling domains by core topology"] },
+      timer:   { name:"Timers", desc:"clock source / scheduled tasks", points:["Replaceable clock source abstraction","High-resolution timer queue","Feeds the scheduler's time slice"] }
+    },
+    features: { cn:"Core Features", hint:"Tiles flip every 4–6s · hover to pause" },
+    features_text: [
+      { title:"Self-built", desc:"Every line of kernel code is written in-house — no existing kernel reused." },
+      { title:"Not based on Linux", desc:"No fork or trim of a monolith; no inherited architectural baggage." },
+      { title:"Microkernel", desc:"The core keeps only mechanisms; services live outside the boundary." },
+      { title:"Preemptive", desc:"High-priority tasks preempt low-priority ones with a short path." },
+      { title:"Memory Protection", desc:"Address-space isolation with permission checks at kernel level." },
+      { title:"Modular Drivers", desc:"Drivers decoupled from the core — add or drop per hardware." },
+      { title:"SMP", desc:"Designed for multi-core topologies with configurable domains." },
+      { title:"Trimmable", desc:"Enable only what you need; the image shrinks with the target." }
+    ],
+    ports: { cn:"Architecture & Porting", stepsCn:"Porting Steps" },
+    arch_status: { supported:"Supported", experimental:"Experimental", planned:"Planned" },
+    arch_notes: [
+      "Mainstream server and desktop platform, our first reference architecture.",
+      "Aimed at mobile and embedded devices; porting proceeds in stages.",
+      "Open ISA — a good target for minimal-trim validation."
+    ],
+    portingSteps: [
+      { title:"Prepare toolchain", desc:"Get a cross compiler for the target and confirm ABI and calling convention." },
+      { title:"Wire the arch layer", desc:"Implement boot entry, page tables and context switching." },
+      { title:"Attach drivers", desc:"Bring up a minimal device set — UART, timer — and get output." },
+      { title:"Boot self-test", desc:"Boot on a VM or dev board, run the kernel self-test, note the porting points." }
+    ],
+    build: { cn:"Build", s1:"Clone the source", s2:"Pick the target arch", s3:"Run the build" },
+    version: { cn:"Version & License", log:"CHANGELOG" },
+    license_tip: "Read the license terms before use",
+    source: { cn:"Get the Source", warn:"Kernel development carries risk — test in a VM or on a spare device." },
+    foot: { sub:"Porting, hardware compatibility reports or collaboration — email us.", top:"Back to top" }
+  }
+};
+/* ============================================================
+   運行時
+   ============================================================ */
+(function () {
+  "use strict";
+
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const SVGNS = "http://www.w3.org/2000/svg";
+
+  let LANG = "zh-TW";                       // 預設繁體中文
+  let ACTIVE_MOD = (NEX.coreModules[0] || {}).id || null;  // 目前聚焦的模塊（語言切換後保持）
+  const dict = () => I18N[LANG] || I18N["zh-TW"];
+
+  /* ---------- 靜態可變內容（不隨語言變化） ---------- */
+  function applyStatic() {
+    $("#navVersion").textContent   = NEX.version;
+    $("#bigVersion").textContent   = NEX.version;
+    $("#relDate").textContent      = NEX.releaseDate;
+    $("#relLicense").textContent  = NEX.license;
+    $("#srcLicense").textContent  = NEX.license;
+    $("#srcVer").textContent      = NEX.version;
+    $("#srcArch").textContent     = NEX.buildDemo.arch;
+    $("#srcName").textContent     = NEX.name;
+    $("#srcSite").textContent     = NEX.siteUrl;
+    $("#buildOut").textContent    = NEX.buildDemo.output;
+    $("#buildArch").textContent   = NEX.buildDemo.arch;
+    $("#heroCmd").textContent     = (NEX.buildDemo.commands[3] || "$ make nex").replace(/^\$\s*/, "");
+    $("#termTitle").textContent   = NEX.name.toLowerCase().replace(/\s+/g, "-") + " — build";
+    $(".hero__corner").textContent = NEX.name + " · " + NEX.version;
+    $("#footCopy").textContent    = "© " + NEX.brand + " / " + NEX.name + " · " + NEX.version;
+    $("#licenseTip").textContent  = dict().license_tip;
+
+    const site = $("#footSite");
+    site.textContent = NEX.siteUrl;
+    site.href = "https://" + NEX.siteUrl;
+
+    // 入口連結全部來自配置
+    [["#srcBtn", NEX.sourceUrl], ["#navSource", NEX.sourceUrl], ["#heroSource", NEX.sourceUrl],
+     ["#srcDocs", NEX.docsUrl], ["#navDocs", NEX.docsUrl], ["#heroDocs", NEX.docsUrl]]
+      .forEach(([sel, url]) => {
+        const el = $(sel);
+        if (!el) return;
+        el.href = url || "#";
+        if (!url || url === "#") el.removeAttribute("target");
+      });
+
+    // 更新日誌（導航浮層 + 版本區）
+    $("#navChangelog").innerHTML = NEX.changelog.slice(0, 4).map(function (t) {
+      const m = t.match(/^(v[\d.]+)\s*—?\s*(.*)$/);
+      return m ? '<li><b>' + m[1] + '</b>' + m[2] + '</li>' : '<li>' + t + '</li>';
+    }).join("");
+
+    $("#logList").innerHTML = NEX.changelog.map(function (t) {
+      const m = t.match(/^(v[\d.]+)\s*—?\s*(.*)$/);
+      return m
+        ? '<li class="log__item"><span class="log__dot"></span><span class="log__v">' + m[1] + '</span><span>' + m[2] + '</span></li>'
+        : '<li class="log__item"><span class="log__dot"></span><span>' + t + '</span></li>';
+    }).join("");
+
+    // 頁腳郵箱
+    $("#footMails").innerHTML = NEX.emails.map(function (mail) {
+      return '<a class="foot__mail" href="mailto:' + mail + '">' + mail + '</a>';
+    }).join("");
+  }
+
+  /* ---------- 引腳圓點：沿八邊形邊緣等距排列（表達對外 API） ---------- */
+  function buildPins() {
+    const g = $("#heroPins");
+    if (!g) return;
+    const cx = 200, cy = 200, R = 196, N = 24;
+    let html = "";
+    for (let i = 0; i < N; i++) {
+      const a = (i / N) * Math.PI * 2 - Math.PI / 2;
+      const x = (cx + R * Math.cos(a)).toFixed(2);
+      const y = (cy + R * Math.sin(a)).toFixed(2);
+      html += '<circle class="pin" cx="' + x + '" cy="' + y + '" r="2.4" style="animation-delay:' +
+              (i * 0.11).toFixed(2) + 's"/>';
+    }
+    g.innerHTML = html;
+  }
+
+  /* ---------- ③ 定位宣言 ---------- */
+  function renderDeclarations() {
+    const d = dict();
+    $("#declList").innerHTML = d.positioning.map(function (p, i) {
+      const note = (d.positioning_notes && d.positioning_notes[i]) || "";
+      // 重點詞以橙色塊高亮：line 拆成 [前段][重點詞][後段]
+      const idx = p.line.indexOf(p.kw);
+      let head = p.line, mid = "", rest = "";
+      if (idx >= 0) {
+        head = p.line.slice(0, idx);
+        mid  = p.kw;
+        rest = p.line.slice(idx + p.kw.length);
+      }
+      return '<div class="decl">' +
+               '<p class="decl__line">' + head +
+                 '<span class="hl">' + mid + '</span>' + rest + (p.tail || "") +
+               '</p>' +
+               '<p class="decl__note">' + note + '</p>' +
+             '</div>';
+    }).join("");
+  }
+
+  /* ---------- ④ 內核模塊放射圖 ---------- */
+  function renderModules() {
+    const radial = $("#radial");
+    const d = dict();
+    const mods = NEX.coreModules;
+    const n = mods.length;
+
+    // 保留 SVG 與中心節點，清掉舊卡片
+    $$(".mod-card", radial).forEach(el => el.remove());
+
+    const Rx = 35, Ry = 36;   // 橢圓半徑（百分比）
+    mods.forEach(function (m, i) {
+      const a = (i / n) * Math.PI * 2 - Math.PI / 2;
+      const x = (50 + Rx * Math.cos(a)).toFixed(2) + "%";
+      const y = (50 + Ry * Math.sin(a)).toFixed(2) + "%";
+      const txt = (d.modules_text && d.modules_text[m.id]) || { name: m.id, desc: "", points: [] };
+
+      const card = document.createElement("div");
+      card.className = "mod-card";
+      card.dataset.id = m.id;
+      card.dataset.tone = m.tone || "slate";
+      card.style.setProperty("--x", x);
+      card.style.setProperty("--y", y);
+      card.tabIndex = 0;
+      card.innerHTML =
+        '<div class="mod-card__icon"><span class="material-symbols-rounded">' + m.icon + '</span></div>' +
+        '<div><p class="mod-card__name">' + txt.name + '</p>' +
+        '<p class="mod-card__mono">' + (txt.desc || "") + '</p></div>';
+      radial.appendChild(card);
+
+      card.addEventListener("mouseenter", () => activateModule(m.id));
+      card.addEventListener("focus", () => activateModule(m.id));
+      card.addEventListener("click", () => activateModule(m.id));
+    });
+
+    buildLinks(mods, Rx, Ry);
+
+    // 語言切換會重建卡片：還原聚焦狀態，避免選中丟失
+    if (ACTIVE_MOD) {
+      $$(".mod-card", radial).forEach(c => c.classList.toggle("is-active", c.dataset.id === ACTIVE_MOD));
+      $$(".link-group", $("#radialLinks")).forEach(g => g.classList.toggle("is-hot", g.dataset.id === ACTIVE_MOD));
+      activateModule(ACTIVE_MOD);
+    }
+  }
+
+  /* 連接線：從核心邊緣放射到卡片，帶流動光點 */
+  function buildLinks(mods, Rx, Ry) {
+    const svg = $("#radialLinks");
+    if (!svg) return;
+    const W = 1000, H = 780, cx = W / 2, cy = H / 2;
+    let html = "";
+    mods.forEach(function (m, i) {
+      const a = (i / mods.length) * Math.PI * 2 - Math.PI / 2;
+      const dx = Math.cos(a), dy = Math.sin(a);
+      const r0 = 118;                                     // 起點：核心外緣
+      // 卡片中心距（把百分比橢圓半徑換算到 viewBox），線只畫到卡片之前
+      const dist = Math.hypot((Rx / 100) * W * dx, (Ry / 100) * H * dy);
+      const r1 = Math.max(r0 + 58, dist * 0.6);
+      const x0 = cx + dx * r0, y0 = cy + dy * r0;
+      const x1 = cx + dx * r1, y1 = cy + dy * r1;
+
+      html += '<g class="link-group" data-id="' + m.id + '">' +
+                '<line class="link-base" x1="' + x0.toFixed(1) + '" y1="' + y0.toFixed(1) +
+                  '" x2="' + x1.toFixed(1) + '" y2="' + y1.toFixed(1) + '"/>' +
+                '<line class="link-flow" x1="' + x0.toFixed(1) + '" y1="' + y0.toFixed(1) +
+                  '" x2="' + x1.toFixed(1) + '" y2="' + y1.toFixed(1) +
+                  '" stroke-dasharray="4 14" style="animation-delay:' + (i * 0.18).toFixed(2) + 's"/>' +
+                '<circle class="link-node" cx="' + x0.toFixed(1) + '" cy="' + y0.toFixed(1) + '" r="3.4"/>' +
+                '<circle class="link-node" cx="' + x1.toFixed(1) + '" cy="' + y1.toFixed(1) + '" r="3.4"/>' +
+              '</g>';
+    });
+    svg.innerHTML = html;
+  }
+
+  function activateModule(id) {
+    const radial = $("#radial");
+    ACTIVE_MOD = id;
+    radial.classList.add("is-focused");
+    $$(".mod-card", radial).forEach(c => c.classList.toggle("is-active", c.dataset.id === id));
+    $$(".link-group", $("#radialLinks")).forEach(g => g.classList.toggle("is-hot", g.dataset.id === id));
+
+    if (!reduce) {
+      radial.classList.remove("is-hit");
+      void radial.offsetWidth;
+      radial.classList.add("is-hit");
+    }
+    renderDetail(id);
+  }
+
+  function renderDetail(id) {
+    const d = dict();
+    const m = NEX.coreModules.find(function (x) { return x.id === id; });
+    const txt = (d.modules_text && d.modules_text[id]) || { name: id, desc: "", points: [] };
+    const box = $("#modDetail");
+    if (!m || !box) return;
+
+    box.classList.add("is-swap");
+    const html =
+      '<div>' +
+        '<p class="mod-detail__kicker">MODULE · ' + m.id.toUpperCase() + '</p>' +
+        '<h3 class="mod-detail__title">' + txt.name + '</h3>' +
+        '<p class="mod-detail__desc">' + (txt.desc || "") + '</p>' +
+      '</div>' +
+      '<ul class="mod-detail__points">' +
+        (txt.points || []).map(function (p) { return "<li>" + p + "</li>"; }).join("") +
+      '</ul>';
+
+    const apply = function () { box.innerHTML = html; box.classList.remove("is-swap"); };
+    if (reduce) { apply(); return; }
+    setTimeout(apply, 120);
+  }
+
+  /* ---------- ⑤ Live Tile 磁貼 ---------- */
+  const tileTimers = [];
+  function renderTiles() {
+    const d = dict();
+    const grid = $("#tileGrid");
+    tileTimers.forEach(clearTimeout);
+    tileTimers.length = 0;
+
+    grid.innerHTML = NEX.features.map(function (f, i) {
+      const t = d.features_text[i] || { title: "—", desc: "" };
+      const cls = "tile" + (f.size === "big" ? " tile--big" : f.size === "wide" ? " tile--wide" : "");
+      return '<div class="' + cls + '" data-tone="' + f.tone + '" data-i="' + i + '" tabindex="0">' +
+               '<div class="tile__inner">' +
+                 '<div class="tile__face">' +
+                   '<span class="material-symbols-rounded tile__icon">' + f.icon + '</span>' +
+                   '<div><p class="tile__title">' + t.title + '</p>' +
+                   '<p class="tile__mono">FEATURE 0' + (i + 1) + '</p></div>' +
+                   '<span class="tile__cur"></span>' +
+                 '</div>' +
+                 '<div class="tile__face tile__back">' +
+                   '<p class="tile__mono">— ' + t.title + '</p>' +
+                   '<p class="tile__body">' + t.desc + '</p>' +
+                   '<span class="tile__cur"></span>' +
+                 '</div>' +
+               '</div>' +
+             '</div>';
+    }).join("");
+
+    // 懸停 / 聚焦暫停自動翻面
+    $$(".tile", grid).forEach(function (tile) {
+      tile.addEventListener("mouseenter", function () { tile.dataset.paused = "1"; });
+      tile.addEventListener("mouseleave", function () { tile.dataset.paused = ""; });
+      tile.addEventListener("focus", function () { tile.dataset.paused = "1"; });
+      tile.addEventListener("blur", function () { tile.dataset.paused = ""; });
+      tile.addEventListener("click", function () {
+        if (reduce) return;
+        tile.classList.toggle("is-flipped");
+      });
+      if (!reduce) scheduleFlip(tile);
+    });
+  }
+
+  function scheduleFlip(tile) {
+    const wait = 4000 + Math.random() * 2000;   // 4–6 秒
+    const id = setTimeout(function () {
+      if (tile.dataset.paused === "1") { scheduleFlip(tile); return; }
+      tile.classList.toggle("is-flipped");
+      scheduleFlip(tile);
+    }, wait);
+    tileTimers.push(id);
+  }
+
+  /* ---------- ⑥ 架構矩陣 + 移植步驟 ---------- */
+  function renderPorts() {
+    const d = dict();
+    $("#archGrid").innerHTML = NEX.architectures.map(function (a, i) {
+      const label = (d.arch_status && d.arch_status[a.status]) || a.status;
+      const note = (d.arch_notes && d.arch_notes[i]) || "";
+      return '<article class="arch-card">' +
+               '<div class="arch-card__top">' +
+                 '<span class="arch-card__name">' + a.name + '</span>' +
+                 '<span class="arch-card__status" data-st="' + a.status + '">' + label + '</span>' +
+               '</div>' +
+               '<p class="arch-card__note">' + note + '</p>' +
+               '<div class="arch-card__bar"><i></i></div>' +
+             '</article>';
+    }).join("");
+
+    $("#stepGrid").innerHTML = NEX.portingSteps.map(function (s, i) {
+      const t = (d.portingSteps && d.portingSteps[i]) || { title: "", desc: "" };
+      return '<div class="step">' +
+               '<div class="step__num">' + ("0" + (i + 1)) + '</div>' +
+               '<p class="step__title">' + t.title + '</p>' +
+               '<p class="step__desc">' + t.desc + '</p>' +
+             '</div>';
+    }).join("");
+  }
+
+  /* ---------- ⑦ 構建終端 ---------- */
+  function renderTerm() {
+    const lines = NEX.buildDemo.commands;
+    $("#termBody").innerHTML = lines.map(function (raw, i) {
+      const isCmd = raw.trim().indexOf("$") === 0;
+      let inner;
+      if (isCmd) {
+        const body = raw.replace(/^\s*\$\s*/, "");
+        const parts = body.split(" ");
+        const head = parts.shift();
+        inner = '<span class="term__prompt">$</span> <span style="color:#E6ECF5">' + head + '</span>' +
+                (parts.length ? ' <span class="term__cmd">' + parts.join(" ") + '</span>' : "") ;
+      } else {
+        inner = '<span style="color:rgba(230,236,245,.55)">' + raw.replace(/^\s+/, "&nbsp;".repeat(2)) + '</span>';
+      }
+      const last = (i === lines.length - 1);
+      return '<div class="term__line" style="animation-delay:' + (i * 0.14).toFixed(2) + 's">' +
+               '<span class="term__ln">' + ("0" + (i + 1)).slice(-2) + '</span>' +
+               '<span>' + inner + (last ? ' <span class="cursor"></span>' : "") + '</span>' +
+             '</div>';
+    }).join("");
+  }
+
+  /* ---------- 語言切換 ---------- */
+  function getPath(obj, path) {
+    return path.split(".").reduce(function (o, k) { return o && o[k] !== undefined ? o[k] : undefined; }, obj);
+  }
+
+  function setLang(lang) {
+    LANG = I18N[lang] ? lang : "zh-TW";
+    const d = dict();
+
+    // 靜態文案
+    $$("[data-i18n]").forEach(function (el) {
+      const v = getPath(d, el.dataset.i18n);
+      if (typeof v === "string") el.textContent = v;
+    });
+    // 動態板塊
+    renderDeclarations();
+    renderModules();
+    renderTiles();
+    renderPorts();
+    renderTerm();
+    $("#licenseTip").textContent = d.license_tip;
+
+    // 分段按鈕狀態
+    $$(".seg__btn").forEach(function (b) {
+      b.classList.toggle("is-active", b.dataset.lang === LANG);
+      b.setAttribute("aria-pressed", b.dataset.lang === LANG ? "true" : "false");
+    });
+
+    document.documentElement.lang = LANG;
+    try { localStorage.setItem("nex-lang", LANG); } catch (e) {}
+
+    // 淡入過場
+    const main = document.querySelector("main");
+    if (main && !reduce) {
+      main.style.transition = "opacity 220ms cubic-bezier(.2,0,0,1)";
+      main.style.opacity = ".35";
+      requestAnimationFrame(function () { main.style.opacity = "1"; });
+    }
+  }
+
+  /* ---------- 導航收合 ---------- */
+  function initNav() {
+    const nav = $("#nav");
+    const onScroll = function () {
+      nav.classList.toggle("is-compact", window.scrollY > 40);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+  }
+
+  /* ---------- 滾動進場（IntersectionObserver） ---------- */
+  function initReveal() {
+    const items = $$(".reveal");
+    if (reduce || !("IntersectionObserver" in window)) {
+      items.forEach(el => el.classList.add("in"));
+      return;
+    }
+    const io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); }
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
+    items.forEach(el => io.observe(el));
+  }
+
+  /* ---------- 首屏視差 ---------- */
+  function initParallax() {
+    if (reduce) return;
+    const hero = $("#hero");
+    const core = $("#heroCore");
+    const shapes = $$("[data-par]", hero);
+    hero.addEventListener("mousemove", function (e) {
+      const r = hero.getBoundingClientRect();
+      const mx = (e.clientX - r.left) / r.width - 0.5;
+      const my = (e.clientY - r.top) / r.height - 0.5;
+      if (core) core.style.transform = "translate3d(" + (mx * 18).toFixed(2) + "px," + (my * 14).toFixed(2) + "px,0)";
+      shapes.forEach(function (s) {
+        const k = parseFloat(s.dataset.par) * 100;
+        s.style.transform = "translate3d(" + (mx * k).toFixed(2) + "px," + (my * k).toFixed(2) + "px,0)";
+      });
+    });
+    hero.addEventListener("mouseleave", function () {
+      if (core) core.style.transform = "";
+      shapes.forEach(s => { s.style.transform = ""; });
+    });
+  }
+
+  /* ---------- 漣漪 ---------- */
+  function initRipple() {
+    document.addEventListener("pointerdown", function (e) {
+      const host = e.target.closest(".ripple");
+      if (!host || reduce) return;
+      const r = host.getBoundingClientRect();
+      const size = Math.max(r.width, r.height);
+      const dot = document.createElement("span");
+      dot.className = "ripple__dot";
+      dot.style.width = dot.style.height = size + "px";
+      dot.style.left = (e.clientX - r.left - size / 2) + "px";
+      dot.style.top  = (e.clientY - r.top  - size / 2) + "px";
+      host.appendChild(dot);
+      setTimeout(() => dot.remove(), 660);
+    });
+  }
+
+  /* ---------- 語言按鈕 ---------- */
+  function initLang() {
+    $$(".seg__btn").forEach(function (b) {
+      b.addEventListener("click", function () { setLang(b.dataset.lang); });
+    });
+    let saved = null;
+    try { saved = localStorage.getItem("nex-lang"); } catch (e) {}
+    setLang(saved || "zh-TW");
+  }
+
+  /* ---------- 啟動 ---------- */
+  document.addEventListener("DOMContentLoaded", function () {
+    applyStatic();
+    buildPins();
+    renderDeclarations();
+    renderModules();
+    renderTiles();
+    renderPorts();
+    renderTerm();
+    initNav();
+    initReveal();
+    initParallax();
+    initRipple();
+    initLang();
+  });
+})();
+</script>
 </body>
 </html>
